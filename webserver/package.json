@@ -1,0 +1,14 @@
+{
+  "name": "dig-launcher",
+  "version": "0.0.1",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.13.3",
+    "express": "^4.13.3",
+    "fs-extra": "0.26.2",
+    "winston": "^1.0.1"
+  }
+}

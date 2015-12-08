@@ -1,19 +1,10 @@
 library(shiny)
 
-
-bd <- read.csv("../data.csv",fill=T)
-bd[is.na(bd)] <- 0
-bdNames = ls(bd,sort=FALSE)
-bdmin = apply(bd,2,min)
-bdmax = apply(bd,2,max)
-
-print(bdNames)
-
 # Define UI for BladeMDA application
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("BladeMDA Design Space Browser"),
+  titlePanel("Title"),
   tabsetPanel(
     tabPanel("Pairs Plot",
       fluidRow(
@@ -22,10 +13,9 @@ shinyUI(fluidPage(
           wellPanel(
             selectInput("display",
                         "Display:",
-                        bdNames,
-                        multiple = TRUE,
-                        selected = bdNames[c(1,2)]),
-            selectInput("colVar", "Colored Variable:", bdNames, selected = bdNames[c(1)]),
+                        c(),
+                        multiple = TRUE),
+            selectInput("colVar", "Colored Variable:", c()),
             sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1),
             p(strong("Info:")),
             actionButton("updateStats", "Update"),
@@ -48,8 +38,8 @@ shinyUI(fluidPage(
         column(3,
           br(),
           wellPanel(
-            selectInput("xInput", "X-axis", bdNames, selected = bdNames[c(1)]),
-            selectInput("yInput", "Y-Axis", bdNames, selected = bdNames[c(2)])
+            selectInput("xInput", "X-axis", c()),
+            selectInput("yInput", "Y-Axis", c())
           )
         ),
         column(9,
@@ -62,17 +52,6 @@ shinyUI(fluidPage(
       )
     )
   ),
-  fluidRow(
-    lapply(1:length(bdNames), function(i) {
-      column(2,
-        sliderInput(paste0('inp', i), bdNames[i],
-          step = signif((unname(bdmax[bdNames[i]])-unname(bdmin[bdNames[i]]))*0.01, digits = 2),
-          min = signif(unname(bdmin[bdNames[i]])*0.95, digits = 2),
-          max = signif(unname(bdmax[bdNames[i]])*1.05, digits = 2),
-          value = c(signif(unname(bdmin[bdNames[i]])*0.95, digits = 2),signif(unname(bdmax[bdNames[i]])*1.05, digits = 2))
-        )
-      )
-    })
-  )
+  uiOutput("sliders")
 )
 )

@@ -4,7 +4,8 @@ library(shiny)
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("Title"),
+  titlePanel("BladeMDA Design Space Browser"),
+  #verbatimTextOutput("debug"),
   tabsetPanel(
     tabPanel("Pairs Plot",
       fluidRow(

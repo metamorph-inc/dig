@@ -1,12 +1,29 @@
 library(shiny)
-#options(shiny.trace=TRUE)
+options(shiny.trace=TRUE)
+#options(shiny.fullstacktrace = TRUE)
+#options(error = function() traceback(2))
+#options(shiny.error = function() traceback(2))
+
 
 shinyServer(function(input, output, clientData, session) {
   # icount = 1
   # selPlotx  <-1
   # selPloty <- 2
   # numPlots <- 2
-  bladedat <- read.csv("../data.csv")
+  bladedat = c()
+  query <- parseQueryString(isolate(session$clientData$url_search))
+
+  # output$debug <- renderText({
+  #   paste(names(query), query, sep = "=", collapse=", ")
+  # })
+
+    if (!is.null(query[['csvfilename']])) {
+        bladedat <- read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''))
+    }
+    else
+    {
+        bladedat <- read.csv("../data.csv")
+    }
   # do something to pre-process the data
 
   bdAbsMin = apply(bladedat, 2, min, na.rm=TRUE)

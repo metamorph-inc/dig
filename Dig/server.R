@@ -1,11 +1,11 @@
 library(shiny)
 #options(shiny.trace=TRUE)
 
-bladedat <- read.csv("../data.csv")
+raw <- read.csv("../data.csv")
 # do something to pre-process the data
 
-bdAbsMin = apply(bladedat, 2, min, na.rm=TRUE)
-bdAbsMax = apply(bladedat, 2, max, na.rm=TRUE)
+rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
+rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   # icount = 1
@@ -13,113 +13,92 @@ shinyServer(function(input, output, clientData, session) {
   # selPloty <- 2
   # numPlots <- 2
   
-  bdNames = ls(bladedat,sort=FALSE)
+  varNames = ls(raw,sort=FALSE)
+  varClass = sapply(raw,class)
   
-  filteredData <- reactive({
-    data <- correctedData()
-    for(column in 1:length(bdNames)) {
-      inpname=paste("inp",toString(column),sep="")
-      nname = bdNames[column]
-      rng = input[[inpname]]
-      bd <- bd[bd[nname] >= rng[1],]
-      bd <- bd[bd[nname] <= rng[2],]
+  filterData <- reactive({
+    print("In filterData()")
+    data <- raw
+    for(column in 1:length(varNames)) {
+      inpName=paste("inp",toString(column),sep="")
+      nname = varNames[column]
+      rng = input[[inpName]]
+      if(varClass[column]=="numeric") {
+        data <- data[data[nname] >= rng[1],]
+        data <- data[data[nname] <= rng[2],]
+      } else {
+        if (varClass[column]=="factor") {
+          data <- data[data[[nname]] %in% rng]
+        }
+      }
       #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
     }
-  })
-  
-  colorData <- reactive({
-    data <- filteredData()
-    print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-    data$color <- character(nrow(data))
-    data$color <- "yellow"
-    data$color[colorData[paste(input$colVar)] < input$colSlider[1]] <- "green"
-    data$color[colorData[paste(input$colVar)] > input$colSlider[2]] <- "red"
+    print("Data Filtered")
     data
   })
   
-
+  colorData <- reactive({
+    print("In colorData()")
+    data <- filterData()
+    print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
+    data$color <- character(nrow(data))
+    data$color <- "yellow"
+    data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
+    data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+    print("Data Colored")
+    data
+  })
+  
+  # Show the pairs plots
+  output$pairsPlot <- renderPlot({
+    
+    validate(
+      need(length(input$display) >= 2, "Please select two or more display variables.")
+    )
+    
+    print("Getting Variable List.")
+    idx = 0
+    for(choice in 1:length(input$display)) {
+      mm <- match(input$display[choice],varNames)
+      if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    }
+    print(idx)
+    
+    data <- colorData()
+    print("Rendering Plot.")
+    pairs(data[idx],lower.panel = panel.smooth,upper.panel=NULL, col=data$color)
+    print("Plot Rendered.")
+  })
   
   output$stats <- renderText({
     infoTable()
   })
   
   infoTable <- eventReactive(input$updateStats, {
-    colorCounts = table(bd$colors)
-    paste0("Total Points: ", nrow(bladedat),
-           "\nCurrent Points: ", nrow(bd),
+    colorCounts = table(colorData()$color)
+    paste0("Total Points: ", nrow(raw),
+           "\nCurrent Points: ", nrow(filterData()),
            "\nGreen Points: ", try(colorCounts[["green"]]),
            "\nYellow Points: ", try(colorCounts[["yellow"]]),
            "\nRed Points: ", try(colorCounts[["red"]])
     )
   })
   
-  # Show the values using an HTML table
-  output$pairsPlot <- renderPlot({
-
-    idx = 0
-    
-    if (length(input$display) < 2) {
-      # Too few inputs, print message asking for more.
-      print("Too few inputs.")
-      
-    } else {
-      
-      print("Getting Variable List.")
-      for(choice in 1:length(input$display)) {
-        mm <- match(input$display[choice],bdNames)
-        if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-      }
-      print(idx)
-      
-      print("Trimming Data.")
-      bd <<- bladedat
-      for(column in 1:length(bdNames)) {
-        inpname=paste("inp",toString(column),sep="")
-        nname = bdNames[column]
-        rng = input[[inpname]]
-        bd <<- bd[bd[nname] >= rng[1],]
-        bd <<- bd[bd[nname] <= rng[2],]
-        
-        bdmin <<- apply(bd,2,min)
-        bdmax <<- apply(bd,2,max)
-        #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-      }
-      
-      if(length(bd[idx]) > 0) {
-        print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-        bd$colors <<- character(nrow(bd))
-        bd$colors <<- "yellow"
-        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <<- "green"
-        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <<- "red"
-        print("Rendering Plot.")
-        pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
-        print("Plot Rendered.")
-      }
-    }
-
-  })
+  
   
   output$singlePlot <- renderPlot({
     
     idx = 0
-    mm <- match(input$xInput,bdNames)
-    if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-    mm <- match(input$yInput,bdNames)
-    if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
+    mm <- match(input$xInput,varNames)
+    if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    mm <- match(input$yInput,varNames)
+    if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
     
     print(idx)
 
-    bd <- bladedat
-    for(column in 1:length(bdNames)) {
-      inpname=paste("inp",toString(column),sep="")
-      nname = bdNames[column]
-      rng = input[[inpname]]
-      bd <- bd[bd[nname] >= rng[1],]
-      bd <- bd[bd[nname] <= rng[2],]
-      #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-    }
-    if(length(bd[idx]) > 0) {
-      plot(bd[idx])
+    data <- filterData()
+    if(length(data[idx]) > 0) {
+      plot(data[idx])
     }
   })
   
@@ -145,7 +124,7 @@ shinyServer(function(input, output, clientData, session) {
  
   output$exportData <- downloadHandler(
     filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },
-    content = function(file) { write.csv(bd, file) }
+    content = function(file) { write.csv(filterData(), file) }
   )
   
   output$exportPlot <- downloadHandler(
@@ -157,31 +136,31 @@ shinyServer(function(input, output, clientData, session) {
       
       print("Getting Variable List.")
       for(choice in 1:length(input$display)) {
-        mm <- match(input$display[choice],bdNames)
-        if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
+        mm <- match(input$display[choice],varNames)
+        if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
       }
       print(idx)
       
       print("Trimming Data.")
-      bd <<- bladedat
-      for(column in 1:length(bdNames)) {
+      bd <- raw
+      for(column in 1:length(varNames)) {
         inpname=paste("inp",toString(column),sep="")
-        nname = bdNames[column]
+        nname = varNames[column]
         rng = input[[inpname]]
-        bd <<- bd[bd[nname] >= rng[1],]
-        bd <<- bd[bd[nname] <= rng[2],]
+        bd <- bd[bd[nname] >= rng[1],]
+        bd <- bd[bd[nname] <= rng[2],]
         
-        bdmin <<- apply(bd,2,min)
-        bdmax <<- apply(bd,2,max)
+        bdmin <- apply(bd,2,min)
+        bdmax <- apply(bd,2,max)
         #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
       }
       
       if(length(bd[idx]) > 0) {
         print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-        bd$colors <<- character(nrow(bd))
-        bd$colors <<- "yellow"
-        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <<- "green"
-        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <<- "red"
+        bd$colors <- character(nrow(bd))
+        bd$colors <- "yellow"
+        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <- "green"
+        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <- "red"
         print("Rendering Plot.")
         pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
         print("Plot Rendered.")
@@ -196,10 +175,10 @@ shinyServer(function(input, output, clientData, session) {
     print("Observing.")
     updateSliderInput(session,
                       "colSlider",
-                      step = signif((max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
-                      min = signif(unname(bdAbsMin[paste(input$colVar)])*0.95, digits = 2),
-                      max = signif(unname(bdAbsMax[paste(input$colVar)])*1.05, digits = 2),
-                      value = c(min(bd[paste(input$colVar)], na.rm=TRUE)+0.33*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)), min(bd[paste(input$colVar)], na.rm=TRUE)+0.66*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)))
+                      step = signif((max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
+                      min = signif(unname(rawAbsMin[paste(input$colVar)])*0.95, digits = 2),
+                      max = signif(unname(rawAbsMax[paste(input$colVar)])*1.05, digits = 2),
+                      value = c(min(colorData()[paste(input$colVar)], na.rm=TRUE)+0.33*(max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE)), min(colorData()[paste(input$colVar)], na.rm=TRUE)+0.66*(max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE)))
     
     # updateSliderInput(session, "inp1", value=c(input$plot_brush$xmin, input$plot_brush$xmax))
     # updateSliderInput(session, inputID = paste0("inp", "1"),
@@ -208,13 +187,13 @@ shinyServer(function(input, output, clientData, session) {
     #                   value = c(input$plot_brush$xmin, input$plot_brush$xmax),
     #                   step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1))
     # updateSliderInput(session,
-    #                   inputID = paste0("inp", match(input$xInput, bdNames)),
+    #                   inputID = paste0("inp", match(input$xInput, varNames)),
     #                   min = input$plot_brush$xmin,
     #                   max = input$plot_brush$xmax,
     #                   value = c(input$plot_brush$xmin, input$plot_brush$xmax),
     #                   step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1))
     # updateSliderInput(session,
-    #                   inputID = paste0("inp", match(input$yInput, bdNames)),
+    #                   inputID = paste0("inp", match(input$yInput, varNames)),
     #                   min = input$plot_brush$ymin,
     #                   max = input$plot_brush$ymax,
     #                   value = c(input$plot_brush$ymin, input$plot_brush$ymax),
@@ -222,3 +201,49 @@ shinyServer(function(input, output, clientData, session) {
     )
   })
 })  
+
+
+# output$pairsPlot <- renderPlot({
+#   
+#   idx = 0
+#   
+#   if (length(input$display) < 2) {
+#     # Too few inputs, print message asking for more.
+#     print("Too few inputs.")
+#     
+#   } else {
+#     
+#     print("Getting Variable List.")
+#     for(choice in 1:length(input$display)) {
+#       mm <- match(input$display[choice],varNames)
+#       if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+#     }
+#     print(idx)
+#     
+#     print("Trimming Data.")
+#     bd <<- bladedat
+#     for(column in 1:length(varNames)) {
+#       inpname=paste("inp",toString(column),sep="")
+#       nname = varNames[column]
+#       rng = input[[inpname]]
+#       bd <<- bd[bd[nname] >= rng[1],]
+#       bd <<- bd[bd[nname] <= rng[2],]
+#       
+#       bdmin <<- apply(bd,2,min)
+#       bdmax <<- apply(bd,2,max)
+#       #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
+#     }
+#     
+#     if(length(bd[idx]) > 0) {
+#       print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
+#       bd$colors <<- character(nrow(bd))
+#       bd$colors <<- "yellow"
+#       bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <<- "green"
+#       bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <<- "red"
+#       print("Rendering Plot.")
+#       pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
+#       print("Plot Rendered.")
+#     }
+#   }
+#   
+# })

@@ -16,6 +16,8 @@ shinyServer(function(input, output, clientData, session) {
   varNames = ls(raw,sort=FALSE)
   varClass = sapply(raw,class)
   
+  print(paste("varClass:", varClass))
+  
   filterData <- reactive({
     print("In filterData()")
     data <- raw
@@ -23,7 +25,7 @@ shinyServer(function(input, output, clientData, session) {
       inpName=paste("inp",toString(column),sep="")
       nname = varNames[column]
       rng = input[[inpName]]
-      if(varClass[column]=="numeric") {
+      if(varClass[column]=="numeric" | varClass[column]=="integer") {
         data <- data[data[nname] >= rng[1],]
         data <- data[data[nname] <= rng[2],]
       } else {
@@ -42,20 +44,42 @@ shinyServer(function(input, output, clientData, session) {
     data <- filterData()
     print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
     data$color <- character(nrow(data))
-    data$color <- "yellow"
-    data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
-    data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+    if (input$color == TRUE) {
+      data$color <- "yellow"
+      if (input$radio == "max") {
+        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "red"
+        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "green"
+      } else {
+        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
+        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+      }
+    } else {
+      data$color <- "black"
+    }
     print("Data Colored")
     data
   })
   
   # Show the pairs plots
   output$pairsPlot <- renderPlot({
+    if (input$autoRender == TRUE) {
+      vars <- varsList()
+    } else {
+      vars <- varsListSlow()
+    }
+    validate(need(length(vars)>=2, "Please select two or more display variables."))
     
-    validate(
-      need(length(input$display) >= 2, "Please select two or more display variables.")
-    )
+    print("Rendering Plot.")
+    pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
+    print("Plot Rendered.")
+  })
+  
+  inputData <- reactive({
     
+    colorData()[vars]
+  })
+  
+  varsList <- reactive({
     print("Getting Variable List.")
     idx = 0
     for(choice in 1:length(input$display)) {
@@ -63,12 +87,23 @@ shinyServer(function(input, output, clientData, session) {
       if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
     }
     print(idx)
-    
-    data <- colorData()
-    print("Rendering Plot.")
-    pairs(data[idx],lower.panel = panel.smooth,upper.panel=NULL, col=data$color)
-    print("Plot Rendered.")
+    idx
   })
+  
+  varsListSlow <- eventReactive(input$renderPlot, {
+    print(paste("input$renderPlot:", input$renderPlot))
+    print("Getting Variable List.")
+    idx = 0
+    for(choice in 1:length(input$display)) {
+      mm <- match(input$display[choice],varNames)
+      if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    }
+    print(idx)
+    idx
+  })
+  
+  
+  
   
   output$stats <- renderText({
     infoTable()
@@ -78,11 +113,27 @@ shinyServer(function(input, output, clientData, session) {
     colorCounts = table(colorData()$color)
     paste0("Total Points: ", nrow(raw),
            "\nCurrent Points: ", nrow(filterData()),
-           "\nGreen Points: ", try(colorCounts[["green"]]),
-           "\nYellow Points: ", try(colorCounts[["yellow"]]),
-           "\nRed Points: ", try(colorCounts[["red"]])
+           "\nGreen Points: ", tryCatch(colorCounts[["green"]], return = "0"),
+           "\nYellow Points: ", tryCatch(colorCounts[["yellow"]], return = "0"),
+           "\nRed Points: ", tryCatch(colorCounts[["red"]], return = "0")
     )
   })
+  
+  output$statsSingle <- renderText({
+    infoTableSingle()
+    #t(brushedPoints(filterData(), input$plot_brush, xvar = input$xInput, yvar = input$yInput))
+  })
+  
+  infoTableSingle <- eventReactive(input$updateStatsSingle, {
+    colorCounts = table(colorData()$color)
+    paste0("Total Points: ", nrow(raw),
+           "\nCurrent Points: ", nrow(filterData()),
+           "\nGreen Points: ", tryCatch(colorCounts[["green"]], return = "0"),
+           "\nYellow Points: ", tryCatch(colorCounts[["yellow"]], return = "0"),
+           "\nRed Points: ", tryCatch(colorCounts[["red"]], return = "0")
+    )
+  })
+  
   
   
   
@@ -118,7 +169,7 @@ shinyServer(function(input, output, clientData, session) {
   
   output$info <- renderPrint({
     # With base graphics, need to tell it what the x and y variables are.
-    t(nearPoints(bd, input$plot_click, xvar = input$xInput, yvar = input$yInput))
+    t(nearPoints(filterData(), input$plot_click, xvar = input$xInput, yvar = input$yInput))
     # nearPoints() also works with hover and dblclick events
   })
  
@@ -171,15 +222,32 @@ shinyServer(function(input, output, clientData, session) {
     }
   )
 
+  constrainXVariable <- eventReactive (input$updateX, {
+    print("In constrainXVariable()")
+    #print(paste("new upper value", input$xInput, "=", input$plot_brush$xmax))
+    #updateSliderInput()
+  })
+  
   observe({
     print("Observing.")
+    data <- isolate(colorData())
     updateSliderInput(session,
                       "colSlider",
-                      step = signif((max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
+                      step = signif((max(data[paste(input$colVar)], na.rm=TRUE)-min(data[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
                       min = signif(unname(rawAbsMin[paste(input$colVar)])*0.95, digits = 2),
                       max = signif(unname(rawAbsMax[paste(input$colVar)])*1.05, digits = 2),
-                      value = c(min(colorData()[paste(input$colVar)], na.rm=TRUE)+0.33*(max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE)), min(colorData()[paste(input$colVar)], na.rm=TRUE)+0.66*(max(colorData()[paste(input$colVar)], na.rm=TRUE)-min(colorData()[paste(input$colVar)], na.rm=TRUE)))
+                      value = c(min(data[paste(input$colVar)], na.rm=TRUE)+0.33*(max(data[paste(input$colVar)], na.rm=TRUE)-min(data[paste(input$colVar)], na.rm=TRUE)), min(data[paste(input$colVar)], na.rm=TRUE)+0.66*(max(data[paste(input$colVar)], na.rm=TRUE)-min(data[paste(input$colVar)], na.rm=TRUE)))
+    )
     
+    constrainYVariable <- eventReactive (input$updateY, {
+      print("In constrainYVariable()")
+      #print(paste("new upper value", input$yInput, "=", input$plot_brush$ymax))
+    })
+    
+    constrainBothVariable <- eventReactive (input$updateBoth, {
+      print("In constrainBothVariable()")
+      #
+    })
     # updateSliderInput(session, "inp1", value=c(input$plot_brush$xmin, input$plot_brush$xmax))
     # updateSliderInput(session, inputID = paste0("inp", "1"),
     #                   min = input$plot_brush$xmin,
@@ -198,7 +266,6 @@ shinyServer(function(input, output, clientData, session) {
     #                   max = input$plot_brush$ymax,
     #                   value = c(input$plot_brush$ymin, input$plot_brush$ymax),
     #                   step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1))
-    )
   })
 })  
 

@@ -1,6 +1,7 @@
 library(shiny)
 #options(shiny.trace=TRUE)
 
+# raw <- read.csv("../../results/mergedPET.csv")
 raw <- read.csv("../data.csv")
 # do something to pre-process the data
 
@@ -44,17 +45,17 @@ shinyServer(function(input, output, clientData, session) {
     data <- filterData()
     print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
     data$color <- character(nrow(data))
+    data$color <- "black"
     if (input$color == TRUE) {
-      data$color <- "yellow"
       if (input$radio == "max") {
         data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "red"
+        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
         data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "green"
       } else {
         data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
+        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
         data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
       }
-    } else {
-      data$color <- "black"
     }
     print("Data Colored")
     data

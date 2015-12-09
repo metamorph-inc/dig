@@ -1,14 +1,16 @@
 library(shiny)
 
 
+# raw <- read.csv("../../results/mergedPET.csv",fill=T)
 raw <- read.csv("../data.csv",fill=T)
 raw[is.na(raw)] <- 0
 
 varNames = ls(raw,sort=FALSE)
 varClass = sapply(raw,class)
 
-rawMin = apply(raw,2,min)
-rawMax = apply(raw,2,max)
+rawMin = apply(raw,2,min, na.rm=TRUE)
+rawMax = apply(raw,2,max, na.rm=TRUE)
+print(paste("rawMin:", rawMin))
 
 print(varNames)
 
@@ -16,7 +18,7 @@ print(varNames)
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("BladeMDA Design Space Browser"),
+  titlePanel("Design Space Browser"),
   tabsetPanel(
     tabPanel("Pairs Plot",
       fluidRow(
@@ -88,12 +90,15 @@ shinyUI(fluidPage(
   ),
   fluidRow(
     lapply(1:length(varNames), function(i) {
+      print(paste(i, varNames[i], varClass[i]))
       column(2,
-        if(varClass[i] == "numeric" | varClass[i] == "integer") {
+        if(varClass[i] == "numeric") {
+          max <- as.numeric(unname(rawMax[varNames[i]]))
+          min <- as.numeric(unname(rawMin[varNames[i]]))
           sliderInput(paste0('inp', i),
                       varNames[i],
                       step = signif((unname(rawMax[varNames[i]])-unname(rawMin[varNames[i]]))*0.01, digits = 2),
-                      min = signif(unname(rawMin[varNames[i]])*0.95, digits = 2),
+                      min = signif(as.numeric(unname(rawMin[varNames[i]]))*0.95, digits = 2),
                       max = signif(unname(rawMax[varNames[i]])*1.05, digits = 2),
                       value = c(signif(unname(rawMin[varNames[i]])*0.95, digits = 2),signif(unname(rawMax[varNames[i]])*1.05, digits = 2)))
         } else {
@@ -103,6 +108,16 @@ shinyUI(fluidPage(
                         multiple = TRUE,
                         selectize = FALSE,
                         choices = names(table(raw[varNames[i]])))
+          } else {
+            if (varClass[i] == "integer") {
+              max <- as.numeric(unname(rawMax[varNames[i]]))
+              min <- as.numeric(unname(rawMin[varNames[i]]))
+              sliderInput(paste0('inp', i),
+                          varNames[i],
+                          min = min,
+                          max = max,
+                          value = c(min, max))
+            }
           }
         }
       )

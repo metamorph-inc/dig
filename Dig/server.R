@@ -10,7 +10,7 @@ shinyServer(function(input, output, clientData, session) {
   # selPlotx  <-1
   # selPloty <- 2
   # numPlots <- 2
-  bladedat = c()
+  bladedat <- c()
   query <- parseQueryString(isolate(session$clientData$url_search))
 
   # output$debug <- renderText({
@@ -18,11 +18,11 @@ shinyServer(function(input, output, clientData, session) {
   # })
 
     if (!is.null(query[['csvfilename']])) {
-        bladedat <- read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''))
+        bladedat = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''))
     }
     else
     {
-        bladedat <- read.csv("../data.csv")
+        bladedat = read.csv("../data.csv")
     }
   # do something to pre-process the data
 

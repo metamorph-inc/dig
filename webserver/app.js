@@ -16,6 +16,10 @@ var Busboy = require('busboy');
 var httpProxy = require('http-proxy');
 var HttpProxyRules = require('http-proxy-rules');
 
+var shinyUpstreamUrl = 'http://localhost:3838/';
+var port = process.env.PORT || 4545;
+var csvFolder = path.join(__dirname, 'public', 'csvs');
+
 var logger = new (winston.Logger)({
     transports: [
         new (winston.transports.Console)({
@@ -29,16 +33,6 @@ var logger = new (winston.Logger)({
         new winston.transports.File({filename: 'server.log'})
     ]
 });
-
-
-// configure app to use bodyParser()
-// this will let us get the data from a POST
-//app.use(bodyParser({limit: '5mb'}));
-//app.use(bodyParser.urlencoded({extended: true}));
-//app.use(bodyParser.json());
-
-var port = process.env.PORT || 4545;
-var csvFolder = path.join(__dirname, 'public', 'csvs');
 
 
 function generateId() {
@@ -63,7 +57,7 @@ app.post('/csv', function (req, res) {
             var csvStream = fs.createWriteStream(path.join(csvFolder, filename));
             file.pipe(csvStream);
             csvStream.on('error', function (err) {
-                console.log(err);
+                logger.warn('Error saving csv: ' + util.inspect(err));
 
                 res.status(400);
                 res.send({
@@ -97,7 +91,7 @@ app.post('/csv', function (req, res) {
         });
 
         csvStream.on('error', function (err) {
-            console.log(err);
+            logger.warn('Error saving csv: ' + util.inspect(err));
 
             res.status(400);
             res.send({
@@ -119,8 +113,8 @@ server.listen(0, function () {
 
     var proxyRules = new HttpProxyRules({
         rules: {
-            '/Dig/': 'http://localhost:3838/Dig/',
-            '/shared/': 'http://localhost:3838/shared/',
+            '/Dig/': shinyUpstreamUrl + '/Dig/',
+            '/shared/': shinyUpstreamUrl + '/shared/',
         },
         default: 'http://localhost:' + server.address().port
     });
@@ -131,15 +125,16 @@ server.listen(0, function () {
     // Create http server that leverages reverse proxy instance
     // and proxy rules to proxy requests to different targets
     var reverseHttp = http.createServer(function(req, res) {
+        // console.log(req.url);
+
         // a match method is exposed on the proxy rules instance
         // to test a request to see if it matches against one of the specified rules
-        console.log(req.url);
         var target = proxyRules.match(req);
         if (target) {
             return proxy.web(req, res, {
                 target: target
             }, function (err) {
-                console.log('Error from upstream ' + util.inspect(err));
+                logger.warn('Error from upstream ' + util.inspect(err));
                 if (res.headersSent === false) {
                     res.writeHead(500, {'Content-Type': 'text/plain'});
                     res.write('error');
@@ -152,12 +147,12 @@ server.listen(0, function () {
         res.end('The request url and path did not match any of the listed rules!');
     });
     reverseHttp.listen(port, function () {
-        console.log('Listening on ' + port);
+        logger.warn('Listening on ' + port);
     });
 
     reverseHttp.on('upgrade', function (req, socket, head) {
         proxy.ws(req, socket, head, {
-            target: 'http://localhost:3838/'
+            target: shinyUpstreamUrl
         });
     });
 });

@@ -1,4 +1,4 @@
-/*globals require,process,__dirname*/
+/*globals require,process,__dirname,console*/
 'use strict';
 /**
  * Created by adam on 12/4/15.
@@ -10,8 +10,11 @@ var bodyParser = require('body-parser');
 var winston = require('winston');
 var path = require('path');
 var fs = require('fs-extra');
+var util = require('util');
 var http = require('http');
 var Busboy = require('busboy');
+var httpProxy = require('http-proxy');
+var HttpProxyRules = require('http-proxy-rules');
 
 var logger = new (winston.Logger)({
     transports: [
@@ -75,17 +78,9 @@ app.post('/csv', function (req, res) {
         busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated) {
         });
         busboy.on('finish', function() {
-            console.log(req.headers['host']);
-            res.writeHead(303, { Connection: 'close', Location: 'http://localhost:3838/Dig/?csvfilename=' + filename });
+            // console.log(req.headers['host']);
+            res.writeHead(303, { Connection: 'close', Location: '/Dig/?csvfilename=' + filename });
             res.end();
-            return;
-            res.send({
-                message: 'saved successfully',
-                id: filename,
-                data: {
-                    status: 'ok'
-                }
-            });
         });
         req.pipe(busboy);
     } else {
@@ -119,6 +114,50 @@ app.post('/csv', function (req, res) {
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 var server = http.createServer(app);
-server.listen(port, function () {
-    logger.info('Running on port: ' + port);
+server.listen(0, function () {
+    // console.log(server.address().port);
+
+    var proxyRules = new HttpProxyRules({
+        rules: {
+            '/Dig/': 'http://localhost:3838/Dig/',
+            '/shared/': 'http://localhost:3838/shared/',
+        },
+        default: 'http://localhost:' + server.address().port
+    });
+
+    // Create reverse proxy instance
+    var proxy = httpProxy.createProxy();
+
+    // Create http server that leverages reverse proxy instance
+    // and proxy rules to proxy requests to different targets
+    var reverseHttp = http.createServer(function(req, res) {
+        // a match method is exposed on the proxy rules instance
+        // to test a request to see if it matches against one of the specified rules
+        console.log(req.url);
+        var target = proxyRules.match(req);
+        if (target) {
+            return proxy.web(req, res, {
+                target: target
+            }, function (err) {
+                console.log('Error from upstream ' + util.inspect(err));
+                if (res.headersSent === false) {
+                    res.writeHead(500, {'Content-Type': 'text/plain'});
+                    res.write('error');
+                }
+                res.end();
+            });
+        }
+
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('The request url and path did not match any of the listed rules!');
+    });
+    reverseHttp.listen(port, function () {
+        console.log('Listening on ' + port);
+    });
+
+    reverseHttp.on('upgrade', function (req, socket, head) {
+        proxy.ws(req, socket, head, {
+            target: 'http://localhost:3838/'
+        });
+    });
 });

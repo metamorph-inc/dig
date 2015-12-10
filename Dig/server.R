@@ -18,6 +18,8 @@ shinyServer(function(input, output, clientData, session) {
   # })
 
     if (!is.null(query[['csvfilename']])) {
+        # bladedat = read.csv(paste0(dirname(sys.frame(1)$ofile), "/../webserver/public/csvs/", query[['csvfilename']]))
+        # bladedat = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]))
         bladedat = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''))
     }
     else

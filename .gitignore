@@ -1,3 +1,5 @@
 .idea
 webserver/node_modules
-webserver/sessionswebserver/server.log  
+webserver/sessions
+webserver/server.log  
+webserver/public/csvs/*.csv

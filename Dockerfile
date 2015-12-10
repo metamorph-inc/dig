@@ -26,18 +26,3 @@ EXPOSE 3838
 
 CMD ["shiny-server", "--pidfile=/var/run/shiny-server.pid"]
 
-# ln -s /media/sf_kevin/Documents/dig /srv/shiny-server/dig
-#  docker run -v `pwd`/Dig:/srv/shiny-server/Dig -v /media/sf_kevin/Downloads/:/media/sf_kevin/Downloads -p 3838:3838 --name dig dig
-#  http://localhost:3838/Dig/?csvfilename=BladeMDA-XFoil-BigRun.csv
-
-
-# permission denied fix
-# cd /srv/shiny-server/Dig
-# sudo -u shiny ls
-# cd ../
-# cp -r Dig xxx
-# rm -rf Dig
-# mv xxx Dig
-# cd Dig
-# chmod o+x .
-# sudo -u shiny ls

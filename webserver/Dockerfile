@@ -18,6 +18,3 @@ EXPOSE 4545
 VOLUME /srv/public/csvs/
 
 CMD ["node", "app.js"]
-
-# docker build -t dig_webserver .
-# sudo docker run -p 4545:4545 --link dig -v `pwd`/public/csvs/:/srv/public/csvs/ --name dig_webserver dig_webserver

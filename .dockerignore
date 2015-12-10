@@ -1,0 +1,4 @@
+webserver/node_modules
+webserver/server.log
+.idea
+.git

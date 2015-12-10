@@ -11,12 +11,11 @@ wget -q https://download3.rstudio.org/ubuntu-12.04/x86_64/shiny-server-1.4.1.759
 gdebi -n shiny-server-1.4.1.759-amd64.deb
 
 
-
 # /opt/shiny-server/bin/deploy-example default
-# rm -rf /tmp/Rtmp3UiJpA/downloaded_packages
+# TODO apt cleanup and rm -rf /tmp/Rtmp3UiJpA/downloaded_packages
 
 ADD Dig /srv/shiny-server/Dig
-# RUN chmod -R 755 /srv/shiny-server/Dig
+RUN chmod -R o+rx /srv/shiny-server/Dig
 
 # TODO rmarkdown?
 # /etc/shiny-server/shiny-server.conf
@@ -30,3 +29,15 @@ CMD ["shiny-server", "--pidfile=/var/run/shiny-server.pid"]
 # ln -s /media/sf_kevin/Documents/dig /srv/shiny-server/dig
 #  docker run -v `pwd`/Dig:/srv/shiny-server/Dig -v /media/sf_kevin/Downloads/:/media/sf_kevin/Downloads -p 3838:3838 --name dig dig
 #  http://localhost:3838/Dig/?csvfilename=BladeMDA-XFoil-BigRun.csv
+
+
+# permission denied fix
+# cd /srv/shiny-server/Dig
+# sudo -u shiny ls
+# cd ../
+# cp -r Dig xxx
+# rm -rf Dig
+# mv xxx Dig
+# cd Dig
+# chmod o+x .
+# sudo -u shiny ls

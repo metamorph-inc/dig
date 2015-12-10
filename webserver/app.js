@@ -1,18 +1,17 @@
+/*globals require,process,__dirname*/
+'use strict';
 /**
  * Created by adam on 12/4/15.
  */
-// server.js
 
-// BASE SETUP
-// =============================================================================
-
-// call the packages we need
-var express = require('express');        // call express
-var app = express();                 // define our app using express
+var express = require('express');
+var app = express();
 var bodyParser = require('body-parser');
 var winston = require('winston');
 var path = require('path');
 var fs = require('fs-extra');
+var http = require('http');
+var Busboy = require('busboy');
 
 var logger = new (winston.Logger)({
     transports: [
@@ -24,18 +23,19 @@ var logger = new (winston.Logger)({
             handleExceptions: true, // ignored by default when you create the logger, see the logger.create function
             depth: 2
         }),
-        new (winston.transports.File)({filename: 'server.log'})
+        new winston.transports.File({filename: 'server.log'})
     ]
 });
 
 
 // configure app to use bodyParser()
 // this will let us get the data from a POST
-app.use(bodyParser({limit: '5mb'}));
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
+//app.use(bodyParser({limit: '5mb'}));
+//app.use(bodyParser.urlencoded({extended: true}));
+//app.use(bodyParser.json());
 
-var port = process.env.PORT || 8080;        // set our port
+var port = process.env.PORT || 4545;
+var csvFolder = path.join(__dirname, 'public', 'csvs');
 
 
 function generateId() {
@@ -51,61 +51,74 @@ function generateId() {
 }
 
 
-var sessionDataRoot = path.join(__dirname, 'sessions');
-
-function initSession(data, callback) {
-    // Make a temp folder
-    var sessionId = generateId();
-    var sessionPath = path.join(sessionDataRoot, sessionId);
-    fs.mkdirsSync(sessionPath);
-
-    // Dump the CSV
-    var csvPath = path.join(sessionPath, 'data.csv');
-    var csvStream = fs.createWriteStream(csvPath);
-    data.pipe(csvStream);
-    csvStream.on('close', function () {
-        // Do something else.
-
-        // Respond
-        callback(null, {
-            message: 'saved successfully',
-            id: sessionId,
-            data: {
-                status: 'ok'
-            }
-        });
-    });
-
-    csvStream.on('error', function (err) {
-        console.log(err);
-
-        callback(null, {
-            message: 'failed. sorry.',
-            id: sessionId,
-            data: {
-                status: 'error'
-            }
-        });
-    });
-}
-
 app.post('/csv', function (req, res) {
-    initSession(req, function (err, result) {
-        if (err) {
+    var filename = generateId() + '.csv';
+
+    if (req.headers['content-type'].indexOf('multipart/form-data') === 0) {
+        var busboy = new Busboy({ headers: req.headers });
+        busboy.on('file', function(fieldname, file, inputFilename, encoding, mimetype) {
+            var csvStream = fs.createWriteStream(path.join(csvFolder, filename));
+            file.pipe(csvStream);
+            csvStream.on('error', function (err) {
+                console.log(err);
+
+                res.status(400);
+                res.send({
+                    message: 'failed. sorry.',
+                    id: filename,
+                    data: {
+                        status: 'error'
+                    }
+                });
+            });
+        });
+        busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated) {
+        });
+        busboy.on('finish', function() {
+            console.log(req.headers['host']);
+            res.writeHead(303, { Connection: 'close', Location: 'http://localhost:3838/Dig/?csvfilename=' + filename });
+            res.end();
+            return;
+            res.send({
+                message: 'saved successfully',
+                id: filename,
+                data: {
+                    status: 'ok'
+                }
+            });
+        });
+        req.pipe(busboy);
+    } else {
+        var csvStream = fs.createWriteStream(path.join(csvFolder, filename));
+        req.pipe(csvStream);
+        csvStream.on('close', function () {
+            res.send({
+                message: 'saved successfully',
+                id: filename,
+                data: {
+                    status: 'ok'
+                }
+            });
+        });
+
+        csvStream.on('error', function (err) {
+            console.log(err);
+
             res.status(400);
-            res.send({message: err});
-        } else {
-            res.send(result);
-        }
-    });
+            res.send({
+                message: 'failed. sorry.',
+                id: filename,
+                data: {
+                    status: 'error'
+                }
+            });
+        });
+    }
 });
 
-app.use('/home', express.static(path.join(__dirname, 'index.html')));
+app.use('/', express.static(path.join(__dirname, 'public')));
 
-// START THE SERVER
-// =============================================================================
-app.listen(port, function () {
+var server = http.createServer(app);
+server.listen(port, function () {
     logger.info('Running on port: ' + port);
 });
-
-

@@ -1,0 +1,67 @@
+body
+{
+	font-family: "Segoe UI", Tahoma, Helvetica, freesans, sans-serif;
+	font-size: 90%;
+	margin: 1em 10em;
+	color: #333;
+	background-color: #fff;
+    max-width: 40em;
+}
+
+h1, h2
+{
+	font-size: 1.5em;
+	font-weight: normal;
+}
+
+#drop-zone {
+	/*Sort of important*/
+	width: 300px;
+	/*Sort of important*/
+	height: 200px;
+	border: 2px dashed rgba(0,0,0,.3);
+	border-radius: 20px;
+	font-family: Arial, sans-serif;
+	text-align: center;
+	position: relative;
+	line-height: 180px;
+	font-size: 20px;
+	color: rgba(0,0,0,.3);
+}
+
+#drop-zone input {
+	/*Important*/
+	position: absolute;
+	/*Important*/
+	cursor: pointer;
+	left: 0;
+	top: 0;
+	opacity:0;
+}
+
+/*Important*/
+#drop-zone.mouse-over {
+	border: 2px dashed rgba(0,0,0,.5);
+	color: rgba(0,0,0,.5);
+}
+
+#clickHere {
+	position: absolute;
+	cursor: pointer;
+	left: 50%;
+	top: 50%;
+	margin-left: -50px;
+	margin-top: 20px;
+	line-height: 26px;
+	color: white;
+	font-size: 12px;
+	width: 100px;
+	height: 26px;
+	border-radius: 4px;
+	background-color: #3b85c3;
+
+}
+
+#clickHere:hover {
+	background-color: #4499DD;
+}

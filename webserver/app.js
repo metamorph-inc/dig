@@ -16,7 +16,7 @@ var Busboy = require('busboy');
 var httpProxy = require('http-proxy');
 var HttpProxyRules = require('http-proxy-rules');
 
-var shinyUpstreamUrl = 'http://localhost:3838/';
+var shinyUpstreamUrl = 'http://' + (process.env['DIG_PORT_3838_TCP_ADDR'] || 'localhost') + ':3838/';
 var port = process.env.PORT || 4545;
 var csvFolder = path.join(__dirname, 'public', 'csvs');
 

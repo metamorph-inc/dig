@@ -1,8 +1,8 @@
 library(shiny)
 
 
-# raw <- read.csv("../../results/mergedPET.csv",fill=T)
-raw <- read.csv("../data.csv",fill=T)
+# raw <- read.csv("../../results/mergedPET.csv", fill=T)
+raw <- read.csv("../data.csv", fill=T)
 raw[is.na(raw)] <- 0
 
 varNames = ls(raw,sort=FALSE)
@@ -18,7 +18,7 @@ print(varNames)
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("Design Space Browser"),
+  titlePanel("PET Design Space Browser"),
   tabsetPanel(
     tabPanel("Pairs Plot",
       fluidRow(
@@ -45,7 +45,7 @@ shinyUI(fluidPage(
             ),
             p(strong("Info:")),
             actionButton("updateStats", "Update"),
-            br(),
+            br(),br(),
             verbatimTextOutput("stats"),
             p(strong("Currently Filtered Data:")),
             downloadButton('exportData', 'Dataset'),

@@ -1,8 +1,8 @@
 library(shiny)
 #options(shiny.trace=TRUE)
 
-# raw <- read.csv("../../results/mergedPET.csv")
-raw <- read.csv("../data.csv")
+# raw <- read.csv("../../results/mergedPET.csv", fill=T)
+raw <- read.csv("../data.csv", fill=T)
 # do something to pre-process the data
 
 rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
@@ -75,11 +75,6 @@ shinyServer(function(input, output, clientData, session) {
     print("Plot Rendered.")
   })
   
-  inputData <- reactive({
-    
-    colorData()[vars]
-  })
-  
   varsList <- reactive({
     print("Getting Variable List.")
     idx = 0
@@ -111,13 +106,21 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   infoTable <- eventReactive(input$updateStats, {
-    colorCounts = table(colorData()$color)
-    paste0("Total Points: ", nrow(raw),
-           "\nCurrent Points: ", nrow(filterData()),
-           "\nGreen Points: ", tryCatch(colorCounts[["green"]], return = "0"),
-           "\nYellow Points: ", tryCatch(colorCounts[["yellow"]], return = "0"),
-           "\nRed Points: ", tryCatch(colorCounts[["red"]], return = "0")
-    )
+    tb <- table(factor(colorData()$color, c("green", "yellow", "red", "black")))
+    if (input$color) {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", sum(tb[["green"]], tb[["yellow"]], tb[["red"]]),
+             "\nGreen Points: ", tb[["green"]],
+             "\nYellow Points: ", tb[["yellow"]],
+             "\nRed Points: ", tb[["red"]]
+      )
+    } else {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", tb[["black"]]
+      )
+    }
   })
   
   output$statsSingle <- renderText({
@@ -182,42 +185,8 @@ shinyServer(function(input, output, clientData, session) {
   output$exportPlot <- downloadHandler(
     filename = function() { paste('plot-', Sys.Date(), '.pdf', sep='') },
     content = function(file) {
-      pdf(paste('plot-', Sys.Date(), '.pdf', sep=''))
-      
-      idx = 0
-      
-      print("Getting Variable List.")
-      for(choice in 1:length(input$display)) {
-        mm <- match(input$display[choice],varNames)
-        if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
-      }
-      print(idx)
-      
-      print("Trimming Data.")
-      bd <- raw
-      for(column in 1:length(varNames)) {
-        inpname=paste("inp",toString(column),sep="")
-        nname = varNames[column]
-        rng = input[[inpname]]
-        bd <- bd[bd[nname] >= rng[1],]
-        bd <- bd[bd[nname] <= rng[2],]
-        
-        bdmin <- apply(bd,2,min)
-        bdmax <- apply(bd,2,max)
-        #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-      }
-      
-      if(length(bd[idx]) > 0) {
-        print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-        bd$colors <- character(nrow(bd))
-        bd$colors <- "yellow"
-        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <- "green"
-        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <- "red"
-        print("Rendering Plot.")
-        pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
-        print("Plot Rendered.")
-      }
-      
+      pdf(paste('plot-', Sys.Date(), '.pdf', sep=''), width = 10, height = 10)
+      pairs(colorData()[varsList()],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
       dev.off()
       file.copy(paste('plot-', Sys.Date(), '.pdf', sep=''), file)
     }

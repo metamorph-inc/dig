@@ -1,10 +1,10 @@
 library(shiny)
 
-# Define UI for BladeMDA application
+# Define UI for PET Design Space Browser application
 shinyUI(fluidPage(
 
   #  Application title
-  titlePanel("BladeMDA Design Space Browser"),
+  titlePanel("PET Design Space Browser"),
   #verbatimTextOutput("debug"),
   tabsetPanel(
     tabPanel("Pairs Plot",
@@ -16,8 +16,19 @@ shinyUI(fluidPage(
                         "Display:",
                         c(),
                         multiple = TRUE),
-            selectInput("colVar", "Colored Variable:", c()),
-            sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1),
+            checkboxInput("autoRender", "Automatically Rerender", value = FALSE),
+            conditionalPanel(
+              condition = "input.autoRender == false",
+              actionButton("renderPlot", "Render Plot"),
+              br()
+            ),
+            checkboxInput("color", "Color Data", value = TRUE),
+            conditionalPanel(
+              condition = "input.color == true",
+              selectInput("colVar", "Colored Variable:", c()),
+              radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
+              sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
+            ),
             p(strong("Info:")),
             actionButton("updateStats", "Update"),
             br(),
@@ -30,17 +41,21 @@ shinyUI(fluidPage(
         ),
         column(9,
           plotOutput("pairsPlot", height=700)
-            # tabPanel("Table", tableOutput("table"))
         )
       )
     ),
-    tabPanel("SinglePlot",
+    tabPanel("Single Plot",
       fluidRow(
         column(3,
           br(),
           wellPanel(
             selectInput("xInput", "X-axis", c()),
-            selectInput("yInput", "Y-Axis", c())
+            selectInput("yInput", "Y-Axis", c()),
+            br(),
+            p(strong("Adjust Sliders to Selection:")),
+            actionButton("updateX", "X"),
+            actionButton("updateY", "Y"),
+            actionButton("updateBoth", "Both")
           )
         ),
         column(9,
@@ -49,6 +64,16 @@ shinyUI(fluidPage(
         column(12,
           # tableOutput('table')
           verbatimTextOutput("info")
+        )
+      )
+    ),
+    tabPanel("Data Table",
+      wellPanel(
+        fluidRow(
+          br(), actionButton("updateDataTable", "Update Data Table"), br(), br()
+        ),
+        fluidRow(
+          dataTableOutput(outputId="table")
         )
       )
     )

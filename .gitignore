@@ -3,3 +3,4 @@ webserver/node_modules
 webserver/sessions
 webserver/server.log  
 webserver/public/csvs/*.csv
+.Rproj.user

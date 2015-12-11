@@ -10,7 +10,7 @@ shinyServer(function(input, output, clientData, session) {
   # selPlotx  <-1
   # selPloty <- 2
   # numPlots <- 2
-  bladedat <- c()
+  raw <- c()
   query <- parseQueryString(isolate(session$clientData$url_search))
 
   # output$debug <- renderText({
@@ -18,257 +18,286 @@ shinyServer(function(input, output, clientData, session) {
   # })
 
     if (!is.null(query[['csvfilename']])) {
-        # bladedat = read.csv(paste0(dirname(sys.frame(1)$ofile), "/../webserver/public/csvs/", query[['csvfilename']]))
-        # bladedat = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]))
-        bladedat = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''))
+        # raw.csv(paste0(dirname(sys.frame(1)$ofile), "/../webserver/public/csvs/", query[['csvfilename']]), fill=T)
+        # raw = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]), fill=T)
+        raw = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''), fill=T)
     }
     else
     {
-        bladedat = read.csv("../data.csv")
+        raw = read.csv("../data.csv", fill=T)
     }
   # do something to pre-process the data
 
-  bdAbsMin = apply(bladedat, 2, min, na.rm=TRUE)
-  bdAbsMax = apply(bladedat, 2, max, na.rm=TRUE)
-
-  bdNames = ls(bladedat,sort=FALSE)
-  bdmin = apply(bladedat, 2, min)
-  bdmax = apply(bladedat, 2, max)
-  bd = NULL
-
-  updateSelectInput(session, "colVar", choices = bdNames)
-  updateSelectInput(session, "display", choices = bdNames, selected = bdNames[c(1,2)])
-  updateSelectInput(session, "xInput", choices = bdNames, selected = bdNames[c(1)])
-  updateSelectInput(session, "yInput", choices = bdNames, selected = bdNames[c(2)])
-
-
-  filteredData <- reactive({
-    data <- correctedData()
-    for(column in 1:length(bdNames)) {
-      inpname=paste("inp",toString(column),sep="")
-      nname = bdNames[column]
-      rng = input[[inpname]]
-      bd <- bd[bd[nname] >= rng[1],]
-      bd <- bd[bd[nname] <= rng[2],]
-      #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-    }
-  })
-
-  colorData <- reactive({
-    data <- filteredData()
-    print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-    data$color <- character(nrow(data))
-    data$color <- "yellow"
-    data$color[colorData[paste(input$colVar)] < input$colSlider[1]] <- "green"
-    data$color[colorData[paste(input$colVar)] > input$colSlider[2]] <- "red"
-    data
-  })
-
-
+  rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
+  rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
+  
+  varNames = ls(raw,sort=FALSE)
+  varClass = sapply(raw,class)
+  
+  varColor <- varNames[rev((rawAbsMax-rawAbsMin)!= "0")]
+  print(paste("varColor", varColor))
+  
+  print("update panel selections...")
+  updateSelectInput(session, "colVar", choices = varColor, selected = varColor[c(1)])
+  updateSelectInput(session, "display", choices = varNames, selected = varNames[c(1,2)])
+  updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
+  updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
+  print("Done.")
+  
+  # Sliders ---------------------------------------------------------------------------------------------------
   output$sliders <- renderUI({
-  fluidRow(
-    lapply(1:length(bdNames), function(i) {
-      column(2,
-        sliderInput(paste0('inp', i), bdNames[i],
-          step = signif((unname(bdmax[bdNames[i]])-unname(bdmin[bdNames[i]]))*0.01, digits = 2),
-          min = signif(unname(bdmin[bdNames[i]])*0.95, digits = 2),
-          max = signif(unname(bdmax[bdNames[i]])*1.05, digits = 2),
-          value = c(signif(unname(bdmin[bdNames[i]])*0.95, digits = 2),signif(unname(bdmax[bdNames[i]])*1.05, digits = 2))
-        )
+    fluidRow(
+      lapply(1:length(varNames), function(i) {
+        print(paste(i, varNames[i], varClass[i]))
+        column(2,
+        if(varClass[i] == "numeric") {
+          max <- as.numeric(unname(rawAbsMax[varNames[i]]))
+          min <- as.numeric(unname(rawAbsMin[varNames[i]]))
+          if (min == max) {max <- max + 1}
+          sliderInput(paste0('inp', i),
+                      varNames[i],
+                      step = signif((max-min)*0.01, digits = 2),
+                      min = signif(min*0.95, digits = 2),
+                      max = signif(max*1.05, digits = 2),
+                      value = c(signif(min*0.95, digits = 2),signif(max*1.05, digits = 2)))
+        } else {
+          if (varClass[i] == "factor") {
+            selectInput(paste0('inp', i),
+                        varNames[i],
+                        multiple = TRUE,
+                        selectize = FALSE,
+                        choices = names(table(raw[varNames[i]])))
+          } else {
+            if (varClass[i] == "integer") {
+              max <- as.integer(unname(rawAbsMax[varNames[i]]))
+              min <- as.integer(unname(rawAbsMin[varNames[i]]))
+              if (min == max) {max <- max + 1}
+              sliderInput(paste0('inp', i),
+                          varNames[i],
+                          min = min,
+                          max = max,
+                          value = c(min, max))
+            }
+          }
+        }
       )
     })
   )
+})
+
+  # Data functions ----------------------------------------------------------------------
+  filterData <- reactive({
+    print("In filterData()")
+    data <- raw
+    for(column in 1:length(varNames)) {
+      inpName=paste("inp",toString(column),sep="")
+      nname = varNames[column]
+      rng = input[[inpName]]
+      if(varClass[column]=="numeric" | varClass[column]=="integer") {
+        data <- data[data[nname] >= rng[1],]
+        data <- data[data[nname] <= rng[2],]
+      } else {
+        if (varClass[column]=="factor") {
+          data <- data[data[[nname]] %in% rng]
+        }
+      }
+      cat("-----------", inpName, nname, rng, length(data[nname]), sep = '\n')
+    }
+    print("Data Filtered")
+    data
   })
 
+  colorData <- reactive({
+    print("In colorData()")
+    data <- filterData()
+    print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
+    data$color <- character(nrow(data))
+    data$color <- "black"
+    if (input$color == TRUE) {
+      if (input$radio == "max") {
+        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "red"
+        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
+        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "green"
+      } else {
+        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
+        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
+        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+      }
+    }
+    print("Data Colored")
+    data
+  })
 
+  # Pairs Tab --------------------------------------------------------------------------------------
   output$stats <- renderText({
     infoTable()
   })
 
   infoTable <- eventReactive(input$updateStats, {
-    colorCounts = table(bd$colors)
-    paste0("Total Points: ", nrow(bladedat),
-           "\nCurrent Points: ", nrow(bd),
-           "\nGreen Points: ", try(colorCounts[["green"]]),
-           "\nYellow Points: ", try(colorCounts[["yellow"]]),
-           "\nRed Points: ", try(colorCounts[["red"]])
-    )
-  })
-
-  # Show the values using an HTML table
-  output$pairsPlot <- renderPlot({
-
-    idx = 0
-
-    if (length(input$display) < 2) {
-      # Too few inputs, print message asking for more.
-      print("Too few inputs.")
-
+    tb <- table(factor(colorData()$color, c("green", "yellow", "red", "black")))
+    if (input$color) {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", sum(tb[["green"]], tb[["yellow"]], tb[["red"]]),
+             "\nGreen Points: ", tb[["green"]],
+             "\nYellow Points: ", tb[["yellow"]],
+             "\nRed Points: ", tb[["red"]]
+      )
     } else {
-
-      print("Getting Variable List.")
-      for(choice in 1:length(input$display)) {
-        mm <- match(input$display[choice],bdNames)
-        if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-      }
-      print(idx)
-
-      print("Trimming Data.")
-      bd <<- bladedat
-      for(column in 1:length(bdNames)) {
-        inpname=paste("inp",toString(column),sep="")
-        nname = bdNames[column]
-        rng = input[[inpname]]
-        bd <<- bd[bd[nname] >= rng[1],]
-        bd <<- bd[bd[nname] <= rng[2],]
-
-        bdmin <<- apply(bd,2,min)
-        bdmax <<- apply(bd,2,max)
-        #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-      }
-
-      if(length(bd[idx]) > 0 && !is.null(input$colVar)) {
-        print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-        bd$colors <<- character(nrow(bd))
-        bd$colors <<- "yellow"
-        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <<- "green"
-        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <<- "red"
-        print("Rendering Plot.")
-        pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
-        print("Plot Rendered.")
-
-        updateColorSlider();
-      }
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", tb[["black"]]
+      )
     }
-
   })
+
+  output$pairsPlot <- renderPlot({
+    if (input$autoRender == TRUE) {
+      vars <- varsList()
+    } else {
+      vars <- varsListSlow()
+    }
+    validate(need(length(vars)>=2, "Please select two or more display variables."))
+    
+    print("Rendering Plot.")
+    pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
+    print("Plot Rendered.")
+  })
+  
+  varsList <- reactive({
+    print("Getting Variable List.")
+    idx = 0
+    for(choice in 1:length(input$display)) {
+      mm <- match(input$display[choice],varNames)
+      if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    }
+    print(idx)
+    idx
+  })
+  
+  varsListSlow <- eventReactive(input$renderPlot, {
+    print(paste("input$renderPlot:", input$renderPlot))
+    print("Getting Variable List.")
+    idx = 0
+    for(choice in 1:length(input$display)) {
+      mm <- match(input$display[choice],varNames)
+      if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    }
+    print(idx)
+    idx
+  })
+  
+  # Single Plot Tab ----------------------------------------------------------------------------------
 
   output$singlePlot <- renderPlot({
-
+    
     idx = 0
-    mm <- match(input$xInput,bdNames)
-    if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-    mm <- match(input$yInput,bdNames)
-    if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-
+    mm <- match(input$xInput,varNames)
+    if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    mm <- match(input$yInput,varNames)
+    if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
+    
     print(idx)
-
-    bd <- bladedat
-    for(column in 1:length(bdNames)) {
-      inpname=paste("inp",toString(column),sep="")
-      nname = bdNames[column]
-      rng = input[[inpname]]
-      bd <- bd[bd[nname] >= rng[1],]
-      bd <- bd[bd[nname] <= rng[2],]
-      #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-    }
-    if(length(bd[idx]) > 0) {
-      plot(bd[idx])
+    
+    data <- filterData()
+    if(length(data[idx]) > 0) {
+      plot(data[idx])
     }
   })
-
-  # output$selected_rows <- renderPrint({
-  #     ptidx <<- input$plot_click$x
-  #     ptidy <<- input$plot_click$y
-  #     divScat <<- length(scatIdx)
-  #     xidx <- as.integer(1+(divScat-1)*ptidx)
-  #     yidx <- as.integer(1+(divScat-1)*ptidy)
-  #     selPlotx <<- as.integer(scatIdx[xidx+1])
-  #     selPloty <<- as.integer(scatIdx[yidx+1])
-  #     # input$plot_click$x
-  #     cat("Clicked x=",ptidx , "y=",ptidy,"numplots",numPlots," Selected: ", selPlotx,selPloty,"divscat",divScat,"scatIdx",scatIdx )
-  #     #cat(scatIdx)
-  #     icount <<- icount + 1 + input$plot_click$x
-  #  })
 
   output$info <- renderPrint({
     # With base graphics, need to tell it what the x and y variables are.
-    t(nearPoints(bd, input$plot_click, xvar = input$xInput, yvar = input$yInput))
-    # nearPoints() also works with hover and dblclick events
+    t(nearPoints(filterData(), input$plot_click, xvar = input$xInput, yvar = input$yInput, maxpoints = 8))
   })
 
   output$exportData <- downloadHandler(
     filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },
-    content = function(file) { write.csv(bd, file) }
+    content = function(file) { write.csv(filterData(), file) }
   )
-
+  
   output$exportPlot <- downloadHandler(
     filename = function() { paste('plot-', Sys.Date(), '.pdf', sep='') },
     content = function(file) {
-      pdf(paste('plot-', Sys.Date(), '.pdf', sep=''))
-
-      idx = 0
-
-      print("Getting Variable List.")
-      for(choice in 1:length(input$display)) {
-        mm <- match(input$display[choice],bdNames)
-        if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }
-      }
-      print(idx)
-
-      print("Trimming Data.")
-      bd <<- bladedat
-      for(column in 1:length(bdNames)) {
-        inpname=paste("inp",toString(column),sep="")
-        nname = bdNames[column]
-        rng = input[[inpname]]
-        bd <<- bd[bd[nname] >= rng[1],]
-        bd <<- bd[bd[nname] <= rng[2],]
-
-        bdmin <<- apply(bd,2,min)
-        bdmax <<- apply(bd,2,max)
-        #cat("-----------", inpname, nname, rng, length(bd[nname]), sep = '\n')
-      }
-
-    if(length(bd[idx]) > 0 && !is.null(input$colVar)) {
-        print(paste("Coloring Data:", input$colVar, input$colSlider[1], input$colSlider[2]))
-        bd$colors <<- character(nrow(bd))
-        bd$colors <<- "yellow"
-        bd$colors[bd[paste(input$colVar)] < input$colSlider[1]] <<- "green"
-        bd$colors[bd[paste(input$colVar)] > input$colSlider[2]] <<- "red"
-        print("Rendering Plot.")
-        pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=bd$colors)
-        print("Plot Rendered.")
-      }
-
+      pdf(paste('plot-', Sys.Date(), '.pdf', sep=''), width = 10, height = 10)
+      pairs(colorData()[varsList()],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
       dev.off()
       file.copy(paste('plot-', Sys.Date(), '.pdf', sep=''), file)
     }
   )
-
+  
+  # Data Table Tab --------------------------------------------------------------------------------
+  output$table <- renderDataTable({
+    input$updateDataTable
+    data <- isolate(colorData())
+  })
+  
+  # UI Adjustments --------------------------------------------------------------------------------
   updateColorSlider <- function(x) {
-  updateSliderInput(session,
-                    "colSlider",
-                    step = signif((max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
-                    min = signif(unname(bdAbsMin[paste(input$colVar)])*0.95, digits = 2),
-                    max = signif(unname(bdAbsMax[paste(input$colVar)])*1.05, digits = 2),
-                    value = c(min(bd[paste(input$colVar)], na.rm=TRUE)+0.33*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)), min(bd[paste(input$colVar)], na.rm=TRUE)+0.66*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)))
-                    )
+    data <- isolate(colorData())
 
-                        # updateSliderInput(session, "inp1", value=c(input$plot_brush$xmin, input$plot_brush$xmax))
-                        # updateSliderInput(session, inputID = paste0("inp", "1"),
-                        #                   min = input$plot_brush$xmin,
-                        #                   max = input$plot_brush$xmax,
-                        #                   value = c(input$plot_brush$xmin, input$plot_brush$xmax),
-                        #                   step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1))
-                        # updateSliderInput(session,
-                        #                   inputID = paste0("inp", match(input$xInput, bdNames)),
-                        #                   min = input$plot_brush$xmin,
-                        #                   max = input$plot_brush$xmax,
-                        #                   value = c(input$plot_brush$xmin, input$plot_brush$xmax),
-                        #                   step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1))
-                        # updateSliderInput(session,
-                        #                   inputID = paste0("inp", match(input$yInput, bdNames)),
-                        #                   min = input$plot_brush$ymin,
-                        #                   max = input$plot_brush$ymax,
-                        #                   value = c(input$plot_brush$ymin, input$plot_brush$ymax),
-                        #                   step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1))
-
+    min <- min(data[[paste(input$colVar)]], na.rm=TRUE)
+    max <- max(data[[paste(input$colVar)]], na.rm=TRUE)
+    absMin <- unname(rawAbsMin[paste(input$colVar)])
+    absMax <- unname(rawAbsMax[paste(input$colVar)])
+    print(paste(absMin, absMax, min, max))
+    
+    if(varClass[[input$colVar]] == "numeric") {
+      updateSliderInput(session,
+                        "colSlider",
+                        step = signif((max-min)*0.01, digits = 2),
+                        min = signif(absMin*0.95, digits = 2),
+                        max = signif(absMax*1.05, digits = 2),
+                        value = c(min+0.33*(max-min), min+0.66*(max-min))
+      )
+    }
+    if(varClass[[input$colVar]] == "integer") {
+      if (absMax == absMin) {absMax <- (absMax + 1)}
+      updateSliderInput(session,
+                        "colSlider",
+                        min = absMin,
+                        max = absMax,
+                        value = c(min,max)
+      )
+    }
+    
   }
+  
+  # updateColorSlider <- function(x) {
+  #   bd <- isolate(colorData())
+  #   updateSliderInput(session,
+  #                     "colSlider",
+  #                     step = signif((max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
+  #                     min = signif(unname(rawAbsMin[paste(input$colVar)])*0.95, digits = 2),
+  #                     max = signif(unname(rawAbsMax[paste(input$colVar)])*1.05, digits = 2),
+  #                     value = c(min(bd[paste(input$colVar)], na.rm=TRUE)+0.33*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)), min(bd[paste(input$colVar)], na.rm=TRUE)+0.66*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)))
+  #   )
+  # }
+  # 
+  # updateXSlider <- function(x) {
+  #   updateSliderInput(session,
+  #                     inputID = paste0("inp", match(input$xInput, varNames)),
+  #                     min = input$plot_brush$xmin,
+  #                     max = input$plot_brush$xmax,
+  #                     value = c(input$plot_brush$xmin, input$plot_brush$xmax),
+  #                     step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1)
+  #   )
+  # }
+  # 
+  # updateYSlider <- function(x) {
+  #   updateSliderInput(session,
+  #                     inputID = paste0("inp", match(input$yInput, varNames)),
+  #                     min = input$plot_brush$ymin,
+  #                     max = input$plot_brush$ymax,
+  #                     value = c(input$plot_brush$ymin, input$plot_brush$ymax),
+  #                     step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1)
+  #   )
+  # }
+    
+
   observe({
     print("Observing.")
-    if (!is.null(input$colVar) && !is.null(bd)) {
-        updateColorSlider()
+    if (!(as.character(input[["colVar"]]) == "") && !is.null(colorData())) {
+      updateColorSlider()
     }
   })
 })

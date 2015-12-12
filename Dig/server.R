@@ -1,5 +1,5 @@
 library(shiny)
-options(shiny.trace=TRUE)
+#options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
 #options(shiny.error = function() traceback(2))
@@ -17,15 +17,17 @@ shinyServer(function(input, output, clientData, session) {
   #   paste(names(query), query, sep = "=", collapse=", ")
   # })
 
-    if (!is.null(query[['csvfilename']])) {
-        # raw.csv(paste0(dirname(sys.frame(1)$ofile), "/../webserver/public/csvs/", query[['csvfilename']]), fill=T)
-        # raw = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]), fill=T)
-        raw = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''), fill=T)
-    }
-    else
-    {
-        raw = read.csv("../data.csv", fill=T)
-    }
+  if (!is.null(query[['csvfilename']])) {
+    # raw.csv(paste0(dirname(sys.frame(1)$ofile), "/../webserver/public/csvs/", query[['csvfilename']]), fill=T)
+    # raw = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]), fill=T)
+    raw = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''), fill=T)
+  }
+  else
+  {
+    # raw = read.csv("../data.csv", fill=T)
+    raw = read.csv("../../results/mergedPET.csv", fill=T)
+  }
+  
   # do something to pre-process the data
 
   rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
@@ -37,12 +39,11 @@ shinyServer(function(input, output, clientData, session) {
   varColor <- varNames[rev((rawAbsMax-rawAbsMin)!= "0")]
   print(paste("varColor", varColor))
   
-  print("update panel selections...")
+  print("Updating Panel Selections...")
   updateSelectInput(session, "colVar", choices = varColor, selected = varColor[c(1)])
   updateSelectInput(session, "display", choices = varNames, selected = varNames[c(1,2)])
   updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
   updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
-  print("Done.")
   
   # Sliders ---------------------------------------------------------------------------------------------------
   output$sliders <- renderUI({
@@ -50,40 +51,41 @@ shinyServer(function(input, output, clientData, session) {
       lapply(1:length(varNames), function(i) {
         print(paste(i, varNames[i], varClass[i]))
         column(2,
-        if(varClass[i] == "numeric") {
-          max <- as.numeric(unname(rawAbsMax[varNames[i]]))
-          min <- as.numeric(unname(rawAbsMin[varNames[i]]))
-          if (min == max) {max <- max + 1}
-          sliderInput(paste0('inp', i),
-                      varNames[i],
-                      step = signif((max-min)*0.01, digits = 2),
-                      min = signif(min*0.95, digits = 2),
-                      max = signif(max*1.05, digits = 2),
-                      value = c(signif(min*0.95, digits = 2),signif(max*1.05, digits = 2)))
-        } else {
-          if (varClass[i] == "factor") {
-            selectInput(paste0('inp', i),
+          if(varClass[i] == "numeric") {
+            max <- as.numeric(unname(rawAbsMax[varNames[i]]))
+            min <- as.numeric(unname(rawAbsMin[varNames[i]]))
+            if (min == max) {max <- max + 1}
+            sliderInput(paste0('inp', i),
                         varNames[i],
-                        multiple = TRUE,
-                        selectize = FALSE,
-                        choices = names(table(raw[varNames[i]])))
+                        step = signif((max-min)*0.01, digits = 2),
+                        min = signif(min*0.95, digits = 2),
+                        max = signif(max*1.05, digits = 2),
+                        value = c(signif(min*0.95, digits = 2),signif(max*1.05, digits = 2)))
           } else {
-            if (varClass[i] == "integer") {
-              max <- as.integer(unname(rawAbsMax[varNames[i]]))
-              min <- as.integer(unname(rawAbsMin[varNames[i]]))
-              if (min == max) {max <- max + 1}
-              sliderInput(paste0('inp', i),
-                          varNames[i],
-                          min = min,
-                          max = max,
-                          value = c(min, max))
+            if (varClass[i] == "factor") {
+              p(paste("Hellow"))
+              # selectInput(paste0('inp', i),
+              #             varNames[i],
+              #             multiple = TRUE,
+              #             selectize = FALSE,
+              #             choices = names(table(raw[varNames[i]])))
+            } else {
+              if (varClass[i] == "integer") {
+                max <- as.integer(unname(rawAbsMax[varNames[i]]))
+                min <- as.integer(unname(rawAbsMin[varNames[i]]))
+                if (min == max) {max <- max + 1}
+                sliderInput(paste0('inp', i),
+                            varNames[i],
+                            min = min,
+                            max = max,
+                            value = c(min, max))
+              }
             }
           }
-        }
-      )
-    })
-  )
-})
+        )
+      })
+    )
+  })
 
   # Data functions ----------------------------------------------------------------------
   filterData <- reactive({
@@ -92,8 +94,10 @@ shinyServer(function(input, output, clientData, session) {
     for(column in 1:length(varNames)) {
       inpName=paste("inp",toString(column),sep="")
       nname = varNames[column]
-      rng = input[[inpName]]
+      print(paste("Checking", nname))
       if(varClass[column]=="numeric" | varClass[column]=="integer") {
+        rng = input[[inpName]]
+        print(paste("rng", rng[1], rng[2]))
         data <- data[data[nname] >= rng[1],]
         data <- data[data[nname] <= rng[2],]
       } else {
@@ -101,7 +105,7 @@ shinyServer(function(input, output, clientData, session) {
           data <- data[data[[nname]] %in% rng]
         }
       }
-      cat("-----------", inpName, nname, rng, length(data[nname]), sep = '\n')
+      # cat("-----------", inpName, nname, rng, length(data[nname]), sep = '\n')
     }
     print("Data Filtered")
     data
@@ -114,14 +118,19 @@ shinyServer(function(input, output, clientData, session) {
     data$color <- character(nrow(data))
     data$color <- "black"
     if (input$color == TRUE) {
-      if (input$radio == "max") {
-        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "red"
-        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
-        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "green"
+      if(varClass[[input$colVar]] == "factor") {
+        # Coloring of factors is currently unsupported!
+        # data$color[data[paste(input$colVar)] %in% input$colSelect]
       } else {
-        data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
-        data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
-        data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+        if (input$radio == "max") {
+          data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "red"
+          data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
+          data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "green"
+        } else {
+          data$color[data[paste(input$colVar)] < input$colSlider[1]] <- "green"
+          data$color[(data[paste(input$colVar)] >= input$colSlider[1]) & (data[paste(input$colVar)] <= input$colSlider[2])] <- "yellow"
+          data$color[data[paste(input$colVar)] > input$colSlider[2]] <- "red"
+        }
       }
     }
     print("Data Colored")
@@ -196,7 +205,6 @@ shinyServer(function(input, output, clientData, session) {
     if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
     mm <- match(input$yInput,varNames)
     if(mm > 0) { idx <- c(idx,length(varNames)- mm + 1 ) }
-    
     print(idx)
     
     data <- filterData()
@@ -242,6 +250,7 @@ shinyServer(function(input, output, clientData, session) {
     print(paste(absMin, absMax, min, max))
     
     if(varClass[[input$colVar]] == "numeric") {
+      if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
                         "colSlider",
                         step = signif((max-min)*0.01, digits = 2),
@@ -259,39 +268,33 @@ shinyServer(function(input, output, clientData, session) {
                         value = c(min,max)
       )
     }
-    
+    if(varClass[[input$colVar]] == "factor") {
+      updateSelectInput(session,
+                        "colSlider",
+                        choices = names(table(raw[varNames[i]])),
+                        selected = )
+    }
   }
-  
-  # updateColorSlider <- function(x) {
-  #   bd <- isolate(colorData())
-  #   updateSliderInput(session,
-  #                     "colSlider",
-  #                     step = signif((max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE))*0.01, digits = 2),
-  #                     min = signif(unname(rawAbsMin[paste(input$colVar)])*0.95, digits = 2),
-  #                     max = signif(unname(rawAbsMax[paste(input$colVar)])*1.05, digits = 2),
-  #                     value = c(min(bd[paste(input$colVar)], na.rm=TRUE)+0.33*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)), min(bd[paste(input$colVar)], na.rm=TRUE)+0.66*(max(bd[paste(input$colVar)], na.rm=TRUE)-min(bd[paste(input$colVar)], na.rm=TRUE)))
-  #   )
-  # }
-  # 
-  # updateXSlider <- function(x) {
-  #   updateSliderInput(session,
-  #                     inputID = paste0("inp", match(input$xInput, varNames)),
-  #                     min = input$plot_brush$xmin,
-  #                     max = input$plot_brush$xmax,
-  #                     value = c(input$plot_brush$xmin, input$plot_brush$xmax),
-  #                     step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1)
-  #   )
-  # }
-  # 
-  # updateYSlider <- function(x) {
-  #   updateSliderInput(session,
-  #                     inputID = paste0("inp", match(input$yInput, varNames)),
-  #                     min = input$plot_brush$ymin,
-  #                     max = input$plot_brush$ymax,
-  #                     value = c(input$plot_brush$ymin, input$plot_brush$ymax),
-  #                     step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1)
-  #   )
-  # }
+
+  updateXSlider <- function(x) {
+    updateSliderInput(session,
+                      inputID = paste0("inp", match(input$xInput, varNames)),
+                      min = input$plot_brush$xmin,
+                      max = input$plot_brush$xmax,
+                      value = c(input$plot_brush$xmin, input$plot_brush$xmax),
+                      step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1)
+    )
+  }
+
+  updateYSlider <- function(x) {
+    updateSliderInput(session,
+                      inputID = paste0("inp", match(input$yInput, varNames)),
+                      min = input$plot_brush$ymin,
+                      max = input$plot_brush$ymax,
+                      value = c(input$plot_brush$ymin, input$plot_brush$ymax),
+                      step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1)
+    )
+  }
     
 
   observe({

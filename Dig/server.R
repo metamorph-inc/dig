@@ -34,13 +34,13 @@ shinyServer(function(input, output, clientData, session) {
   rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
   
   varNames = ls(raw,sort=FALSE)
-  varClass = sapply(raw,class)
+  varClass = rev(sapply(raw,class))
   
-  varColor <- varNames[rev((rawAbsMax-rawAbsMin)!= "0")]
-  print(paste("varColor", varColor))
+  varRange <- varNames[((rawAbsMax-rawAbsMin)!= "0")]
+  print(paste("varRange", varRange))
   
   print("Updating Panel Selections...")
-  updateSelectInput(session, "colVar", choices = varColor, selected = varColor[c(1)])
+  updateSelectInput(session, "colVar", choices = varRange, selected = varRange[c(1)])
   updateSelectInput(session, "display", choices = varNames, selected = varNames[c(1,2)])
   updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
   updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
@@ -54,21 +54,21 @@ shinyServer(function(input, output, clientData, session) {
           if(varClass[i] == "numeric") {
             max <- as.numeric(unname(rawAbsMax[varNames[i]]))
             min <- as.numeric(unname(rawAbsMin[varNames[i]]))
+            step <- (max-min)*0.01
             if (min == max) {max <- max + 1}
             sliderInput(paste0('inp', i),
                         varNames[i],
-                        step = signif((max-min)*0.01, digits = 2),
-                        min = signif(min*0.95, digits = 2),
-                        max = signif(max*1.05, digits = 2),
-                        value = c(signif(min*0.95, digits = 2),signif(max*1.05, digits = 2)))
+                        step = signif(step, digits = 2),
+                        min = signif(min-step*10, digits = 2),
+                        max = signif(max+step*10, digits = 2),
+                        value = c(signif(min-step*10, digits = 2),signif(max+step*10, digits = 2)))
           } else {
             if (varClass[i] == "factor") {
-              p(paste("Hellow"))
-              # selectInput(paste0('inp', i),
-              #             varNames[i],
-              #             multiple = TRUE,
-              #             selectize = FALSE,
-              #             choices = names(table(raw[varNames[i]])))
+              selectInput(paste0('inp', i),
+                          varNames[i],
+                          multiple = TRUE,
+                          selectize = FALSE,
+                          choices = names(table(raw[varNames[i]])))
             } else {
               if (varClass[i] == "integer") {
                 max <- as.integer(unname(rawAbsMax[varNames[i]]))
@@ -95,13 +95,14 @@ shinyServer(function(input, output, clientData, session) {
       inpName=paste("inp",toString(column),sep="")
       nname = varNames[column]
       print(paste("Checking", nname))
+      rng = input[[inpName]]
       if(varClass[column]=="numeric" | varClass[column]=="integer") {
-        rng = input[[inpName]]
         print(paste("rng", rng[1], rng[2]))
         data <- data[data[nname] >= rng[1],]
         data <- data[data[nname] <= rng[2],]
       } else {
         if (varClass[column]=="factor") {
+          print(paste("rng", rng))
           data <- data[data[[nname]] %in% rng]
         }
       }
@@ -247,6 +248,7 @@ shinyServer(function(input, output, clientData, session) {
     max <- max(data[[paste(input$colVar)]], na.rm=TRUE)
     absMin <- unname(rawAbsMin[paste(input$colVar)])
     absMax <- unname(rawAbsMax[paste(input$colVar)])
+    absStep <- (max-min)*0.01
     print(paste(absMin, absMax, min, max))
     
     if(varClass[[input$colVar]] == "numeric") {
@@ -254,8 +256,8 @@ shinyServer(function(input, output, clientData, session) {
       updateSliderInput(session,
                         "colSlider",
                         step = signif((max-min)*0.01, digits = 2),
-                        min = signif(absMin*0.95, digits = 2),
-                        max = signif(absMax*1.05, digits = 2),
+                        min = signif(absMin-absStep*10, digits = 2),
+                        max = signif(absMax+absStep*10, digits = 2),
                         value = c(min+0.33*(max-min), min+0.66*(max-min))
       )
     }

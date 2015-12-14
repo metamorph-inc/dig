@@ -299,7 +299,7 @@ shinyServer(function(input, output, clientData, session) {
 
   observe({
     print("Observing.")
-    if (!(as.character(input[["colVar"]]) == "") && !is.null(colorData())) {
+    if (!(as.character(input[["colVar"]]) == "") && !is.null(isolate(colorData()))) {
       updateColorSlider()
     }
   })

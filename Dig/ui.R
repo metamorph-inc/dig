@@ -22,7 +22,7 @@ shinyUI(fluidPage(
               actionButton("renderPlot", "Render Plot"),
               br()
             ),
-            checkboxInput("color", "Color Data", value = TRUE),
+            checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
               selectInput("colVar", "Colored Variable:", c()),

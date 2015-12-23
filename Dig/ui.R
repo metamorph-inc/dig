@@ -16,7 +16,8 @@ shinyUI(fluidPage(
                         "Display:",
                         c(),
                         multiple = TRUE),
-            checkboxInput("autoRender", "Automatically Rerender", value = FALSE),
+            actionButton("default", "Reset to Default"),
+            checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
             conditionalPanel(
               condition = "input.autoRender == false",
               actionButton("renderPlot", "Render Plot"),
@@ -25,14 +26,22 @@ shinyUI(fluidPage(
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
-              selectInput("colVar", "Colored Variable:", c()),
-              radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
-              sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
+              # selectInput("colType", "Type:", choices = c("Max/Min" = "num", "Discrete" = "discrete"), selected = "num"),
+              selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
+              conditionalPanel(
+                condition = "input.colType == num",
+                selectInput("colVarNum", "Colored Variable:", c()),
+                radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
+                sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
+              )
+              # conditionalPanel(
+              #   condition = "input.colType == discrete",
+              #   selectInput("colVarFactor")
+              # )
             ),
-            p(strong("Info:")),
-            actionButton("updateStats", "Update"),
-            br(),
+            p(strong("Info:")), #br(),
             verbatimTextOutput("stats"),
+            actionButton("updateStats", "Update"), br(), br(),
             p(strong("Currently Filtered Data:")),
             downloadButton('exportData', 'Dataset'),
             paste("          "),

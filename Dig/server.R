@@ -192,20 +192,23 @@ shinyServer(function(input, output, clientData, session) {
 
   colorData <- reactive({
     print("In colorData()")
+    slider <- input$colSlider
     data <- filterData()
     data$color <- character(nrow(data))
     data$color <- "black"
-    if (input$color == TRUE) {
+    if (isolate(input$color == TRUE)) {
       if (input$colType == "Max/Min") {
-        print(paste("Coloring Data:", input$colVarNum, input$colSlider[1], input$colSlider[2]))
+        name <- isolate(input$colVarNum)
+        bottom <- slider[1]
+        top <- slider[2]
+        print(paste("Coloring Data:", name, bottom, top))
+        data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
         if (input$radio == "max") {
-          data$color[data[paste(input$colVarNum)] < input$colSlider[1]] <- "red"
-          data$color[(data[paste(input$colVarNum)] >= input$colSlider[1]) & (data[paste(input$colVarNum)] <= input$colSlider[2])] <- "yellow"
-          data$color[data[paste(input$colVarNum)] > input$colSlider[2]] <- "green"
+          data$color[data[[name]] < bottom] <- "red"
+          data$color[data[[name]] > top] <- "green"
         } else {
-          data$color[data[paste(input$colVarNum)] < input$colSlider[1]] <- "green"
-          data$color[(data[paste(input$colVarNum)] >= input$colSlider[1]) & (data[paste(input$colVarNum)] <= input$colSlider[2])] <- "yellow"
-          data$color[data[paste(input$colVarNum)] > input$colSlider[2]] <- "red"
+          data$color[data[[name]] < bottom] <- "green"
+          data$color[data[[name]] > top] <- "red"
         }
       } else {
         # Coloring of factors is currently unsupported!
@@ -315,17 +318,17 @@ shinyServer(function(input, output, clientData, session) {
   
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- function(x) {
-    print("In updateColorSlider().")
-    data <- isolate(colorData())
+    print(paste("In updateColorSlider(). colVarNum:", input$colVarNum))
+    data <- isolate(filterData())
     min <- min(data[[paste(input$colVarNum)]], na.rm=TRUE)
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
     absStep <- (max-min)*0.01
-    print(paste("class(max)", class(max), "class(min)", class(min)))
-    print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
-    print(paste(absMin, min, max, absMax))
+    # print(paste("class(max)", class(max), "class(min)", class(min)))
+    # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
+    # print(paste(absMin, min, max, absMax))
     if(varClass[[input$colVarNum]] == "numeric") {
       # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
@@ -383,7 +386,6 @@ shinyServer(function(input, output, clientData, session) {
   observe({
     print("Observing.")
     if (input$colType == "Max/Min" & !(as.character(input[["colVarNum"]]) == "") && !is.null(isolate(colorData()))) {
-      print("We need to update the color slider.")
       updateColorSlider()
     }
   })

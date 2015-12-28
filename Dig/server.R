@@ -46,6 +46,14 @@ shinyServer(function(input, output, clientData, session) {
   updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
   updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
   
+  resetDefaultOptions <- observeEvent(input$resetOptions, {
+    print("In resetDefaultOptions()")
+    updateSelectInput(session, "display", selected = varNames[c(1,2)])
+    updateCheckboxInput(session, "autoRender", value = TRUE)
+    updateCheckboxInput(session, "color", value = FALSE)
+    updateSelectInput(session, "colType", selected = "Max/Min")
+  })
+  
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
     fluidRow(
@@ -126,14 +134,6 @@ shinyServer(function(input, output, clientData, session) {
     )
   })
   
-  resetDefaultOptions <- observeEvent(input$resetOptions, {
-    print("In resetDefaultOptions()")
-    updateSelectInput(session, "display", selected = varNames[c(1,2)])
-    updateCheckboxInput(session, "autoRender", value = TRUE)
-    updateCheckboxInput(session, "color", value = FALSE)
-    updateSelectInput(session, "colType", selected = "Max/Min")
-  })
-  
   resetDefaultSliders <- observeEvent(input$resetSliders, {
     print("In resetDefaultSliders()")
     for(column in 1:length(varNames)) {
@@ -196,7 +196,7 @@ shinyServer(function(input, output, clientData, session) {
     data <- filterData()
     data$color <- character(nrow(data))
     data$color <- "black"
-    if (isolate(input$color == TRUE)) {
+    if (input$color == TRUE) {
       if (input$colType == "Max/Min") {
         name <- isolate(input$colVarNum)
         bottom <- slider[1]
@@ -317,11 +317,12 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   # UI Adjustments -----------------------------------------------------------
-  updateColorSlider <- function(x) {
-    print(paste("In updateColorSlider(). colVarNum:", input$colVarNum))
+  updateColorSlider <- function() {
     data <- isolate(filterData())
     min <- min(data[[paste(input$colVarNum)]], na.rm=TRUE)
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
+    print(paste("colSlider:", input$colSlider[1], input$colSlider[2]))
+    print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
@@ -385,7 +386,7 @@ shinyServer(function(input, output, clientData, session) {
 
   observe({
     print("Observing.")
-    if (input$colType == "Max/Min" & !(as.character(input[["colVarNum"]]) == "") && !is.null(isolate(colorData()))) {
+    if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {
       updateColorSlider()
     }
   })

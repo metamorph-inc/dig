@@ -282,17 +282,17 @@ shinyServer(function(input, output, clientData, session) {
   
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- function(x) {
+    print("In updateColorSlider().")
     data <- isolate(colorData())
-
     min <- min(data[[paste(input$colVarNum)]], na.rm=TRUE)
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
-    step <- max-min
+    
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
     absStep <- (max-min)*0.01
-    # print(paste("class(max)", class(max), "class(min)", class(min), "class(step)", class(step)))
-    # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
-    # print(paste(absMin, absMax, min, max))
+    print(paste("class(max)", class(max), "class(min)", class(min)))
+    print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
+    print(paste(absMin, min, max, absMax))
     if(varClass[[input$colVarNum]] == "numeric") {
       # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
@@ -316,24 +316,35 @@ shinyServer(function(input, output, clientData, session) {
     }
   }
 
-  updateXSlider <- function(x) {
-    updateSliderInput(session,
-                      inputID = paste0("inp", match(input$xInput, varNames)),
-                      min = input$plot_brush$xmin,
-                      max = input$plot_brush$xmax,
-                      value = c(input$plot_brush$xmin, input$plot_brush$xmax),
-                      step = ((input$plot_brush$xmax - input$plot_brush$xmax)*0.1)
-    )
-  }
-
-  updateYSlider <- function(x) {
-    updateSliderInput(session,
-                      inputID = paste0("inp", match(input$yInput, varNames)),
-                      min = input$plot_brush$ymin,
-                      max = input$plot_brush$ymax,
-                      value = c(input$plot_brush$ymin, input$plot_brush$ymax),
-                      step = ((input$plot_brush$ymax - input$plot_brush$ymax)*0.1)
-    )
+  updateXSlider <- observeEvent(input$updateX, {
+    updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
+  })
+  
+  updateYSlider <- observeEvent(input$updateY, {
+    updateSlider(input$yInput, input$plot_brush$ymin, input$plot_brush$ymax)
+  })
+  
+  updateBothSlider <- observeEvent(input$updateBoth, {
+    updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
+    updateSlider(input$yInput, input$plot_brush$ymin, input$plot_brush$ymax)
+  })
+  
+  updateSlider <- function(varName, min, max) {
+    if(!is.null(min) & !is.null(max)) {
+      if(varName %in% varRange) {
+        print(paste0("Updating ", varName, " Slider: ", min, " to ", max))
+        updateSliderInput(session,
+                          paste0("inp", match(varName, varNames)),
+                          value = c(min, max))
+      } else {
+        if(varClass[[varName]] == "factor") {
+          selectedFactors <- ceiling(min):floor(max)
+          names <- levels(filterData()[[varName]])[selectedFactors]
+          print(paste0("Updating ", varName, ": ", names))
+          updateSelectInput(session, paste0('inp', match(varName, varNames)), selected = names)
+        } else {print(paste0("Error: can't update slider for '", varName, "'."))}
+      }
+    } else {print("Error: no selection available for update.")}
   }
 
   observe({

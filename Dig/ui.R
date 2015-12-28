@@ -26,16 +26,15 @@ shinyUI(fluidPage(
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
-              # selectInput("colType", "Type:", choices = c("Max/Min" = "num", "Discrete" = "discrete"), selected = "num"),
               selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
               conditionalPanel(
-                condition = "input.colType == num",
+                condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
                 radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
                 sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
               )
               # conditionalPanel(
-              #   condition = "input.colType == discrete",
+              #   condition = "input.colType == 'Discrete'",
               #   selectInput("colVarFactor")
               # )
             ),
@@ -71,7 +70,6 @@ shinyUI(fluidPage(
           plotOutput("singlePlot", click = "plot_click", brush = "plot_brush", height=700)
         ),
         column(12,
-          # tableOutput('table')
           verbatimTextOutput("info")
         )
       )

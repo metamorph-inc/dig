@@ -103,6 +103,28 @@ shinyServer(function(input, output, clientData, session) {
     updateCheckboxInput(session, "autoRender", value = TRUE)
     updateCheckboxInput(session, "color", value = FALSE)
     updateSelectInput(session, "colType", selected = "Max/Min")
+    for(column in 1:length(varNames)) {
+      if(varClass[column] == "numeric") {
+        max <- as.numeric(unname(rawAbsMax[varNames[column]]))
+        min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+        step <- (max-min)*0.01
+        if (step != 0) {
+          updateSliderInput(session, paste0('inp', column), value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
+        }
+      } else {
+        if(varClass[column] == "integer") {
+          max <- as.integer(unname(rawAbsMax[varNames[column]]))
+          min <- as.integer(unname(rawAbsMin[varNames[column]]))
+          if(min != max) {
+            updateSliderInput(session, paste0('inp', column), value = c(min, max))
+          }
+        } else {
+          if(varClass[column] == "factor") {
+            updateSelectInput(session, paste0('inp', column), selected = names(table(raw[varNames[column]])))
+          }
+        }
+      }
+    }
   })
   
   # Data functions -----------------------------------------------------------

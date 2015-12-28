@@ -85,6 +85,12 @@ shinyUI(fluidPage(
       )
     )
   ),
-  uiOutput("sliders")
+  h3("Filter Data:"),
+  uiOutput("enums"),
+  uiOutput("sliders"),
+  h3("Constants:"),
+  uiOutput("constants")
+  
+  
 )
 )

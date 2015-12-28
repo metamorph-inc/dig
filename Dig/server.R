@@ -47,56 +47,85 @@ shinyServer(function(input, output, clientData, session) {
   updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
   
   # Sliders ------------------------------------------------------------------
+  output$enums <- renderUI({
+    fluidRow(
+      lapply(1:length(varNames), function(column) {
+        if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
+          column(2,
+                 selectInput(paste0('inp', column),
+                             varNames[column],
+                             multiple = TRUE,
+                             selectize = FALSE,
+                             choices = names(table(raw[varNames[column]])),
+                             selected = names(table(raw[varNames[column]])))
+          )
+        }
+      })
+    )
+  })
+  
   output$sliders <- renderUI({
     fluidRow(
-      lapply(1:length(varNames), function(i) {
-        print(paste(i, varNames[i], varClass[i]))
-        column(2,
-          if(varClass[i] == "numeric") {
-            max <- as.numeric(unname(rawAbsMax[varNames[i]]))
-            min <- as.numeric(unname(rawAbsMin[varNames[i]]))
-            step <- (max-min)*0.01
-            # print(paste(i, "min", min, "max", max, "step", step))
-            if (step == 0) {
-              p(paste(varNames[i], "is constant at", min))
-            } else {
-              sliderInput(paste0('inp', i),
-                          varNames[i],
+      lapply(1:length(varNames), function(column) {
+        print(paste(column, varNames[column], varClass[column]))
+        if(varClass[column] == "numeric") {
+          max <- as.numeric(unname(rawAbsMax[varNames[column]]))
+          min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+          step <- (max-min)*0.01
+          # print(paste(column, "min", min, "max", max, "step", step))
+          if (step != 0) {
+            column(2,
+              sliderInput(paste0('inp', column),
+                          varNames[column],
                           step = signif(step, digits = 4),
                           min = signif(min-step*10, digits = 4),
                           max = signif(max+step*10, digits = 4),
                           value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
-            }
-
-          } else {
-            if (varClass[i] == "factor") {
-              selectInput(paste0('inp', i),
-                          varNames[i],
-                          multiple = TRUE,
-                          selectize = FALSE,
-                          choices = names(table(raw[varNames[i]])),
-                          selected = names(table(raw[varNames[i]])))
-            } else {
-              if (varClass[i] == "integer") {
-                max <- as.integer(unname(rawAbsMax[varNames[i]]))
-                min <- as.integer(unname(rawAbsMin[varNames[i]]))
-                if (min == max) {
-                  p(paste(varNames[i], "is constant at", min))
-                } else {
-                  sliderInput(paste0('inp', i),
-                              varNames[i],
-                              min = min,
-                              max = max,
-                              value = c(min, max))
-                }
-              }
+            )
+          }
+        } else {
+          if (varClass[column] == "integer") {
+            max <- as.integer(unname(rawAbsMax[varNames[column]]))
+            min <- as.integer(unname(rawAbsMin[varNames[column]]))
+            if (min != max) {
+              column(2,
+                sliderInput(paste0('inp', column),
+                            varNames[column],
+                            min = min,
+                            max = max,
+                            value = c(min, max))
+              )
             }
           }
-        )
+        }
       })
     )
   })
-
+  
+  output$constants <- renderUI({
+    fluidRow(
+      lapply(1:length(varNames), function(column) {
+        print(paste(column, varNames[column], varClass[column]))
+        if(varClass[column] == "numeric") {
+          max <- as.numeric(unname(rawAbsMax[varNames[column]]))
+          min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+          step <- (max-min)*0.01
+          if (step == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
+        } else {
+          if (varClass[column] == "integer") {
+            max <- as.integer(unname(rawAbsMax[varNames[column]]))
+            min <- as.integer(unname(rawAbsMin[varNames[column]]))
+            if (min == max) {column(2, p(strong(paste0(varNames[column],":")), min))}
+          } else {
+            if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) == 1) {
+              column(2, p(strong(paste0(varNames[column],":")), names(table(raw[varNames[column]]))))
+            }
+          }
+        }
+      })
+    )
+  })
+  
   resetToDefault <- observeEvent(input$default, {
     print("In resetToDefault()")
     updateSelectInput(session, "display", selected = varNames[c(1,2)])

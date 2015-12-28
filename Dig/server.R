@@ -331,7 +331,7 @@ shinyServer(function(input, output, clientData, session) {
       # if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
                         "colSlider",
-                        step = signif(absStep*10, digits = 4),
+                        step = signif(absStep, digits = 4),
                         min = signif(absMin-absStep*10, digits = 4),
                         max = signif(absMax+absStep*10, digits = 4),
                         value = c(min+0.33*(max-min), min+0.66*(max-min))

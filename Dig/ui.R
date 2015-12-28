@@ -16,7 +16,6 @@ shinyUI(fluidPage(
                         "Display:",
                         c(),
                         multiple = TRUE),
-            actionButton("default", "Reset to Default"),
             checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
             conditionalPanel(
               condition = "input.autoRender == false",
@@ -44,7 +43,8 @@ shinyUI(fluidPage(
             p(strong("Currently Filtered Data:")),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
-            downloadButton('exportPlot', 'Plot')
+            downloadButton('exportPlot', 'Plot'), hr(),
+            actionButton("resetOptions", "Reset to Default Options")
           )
         ),
         column(9,
@@ -86,6 +86,7 @@ shinyUI(fluidPage(
     )
   ),
   h3("Filter Data:"),
+  actionButton("resetSliders", "Reset All Sliders"), br(), br(),
   uiOutput("enums"),
   uiOutput("sliders"),
   h3("Constants:"),

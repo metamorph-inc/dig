@@ -126,12 +126,16 @@ shinyServer(function(input, output, clientData, session) {
     )
   })
   
-  resetToDefault <- observeEvent(input$default, {
-    print("In resetToDefault()")
+  resetDefaultOptions <- observeEvent(input$resetOptions, {
+    print("In resetDefaultOptions()")
     updateSelectInput(session, "display", selected = varNames[c(1,2)])
     updateCheckboxInput(session, "autoRender", value = TRUE)
     updateCheckboxInput(session, "color", value = FALSE)
     updateSelectInput(session, "colType", selected = "Max/Min")
+  })
+  
+  resetDefaultSliders <- observeEvent(input$resetSliders, {
+    print("In resetDefaultSliders()")
     for(column in 1:length(varNames)) {
       if(varClass[column] == "numeric") {
         max <- as.numeric(unname(rawAbsMax[varNames[column]]))

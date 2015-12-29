@@ -21,7 +21,7 @@ shinyUI(fluidPage(
               condition = "input.autoRender == false",
               actionButton("renderPlot", "Render Plot"),
               br()
-            ), hr(),
+            ), br(),
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
@@ -83,6 +83,10 @@ shinyUI(fluidPage(
           dataTableOutput(outputId="table")
         )
       )
+    ),
+    tabPanel("Options", fluidRow(column(3, br(), wellPanel(fluidRow(p(strong("Point Options:")),
+      column(6, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
+      column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))))), column(9))
     )
   ),
   h3("Filter Data:"),

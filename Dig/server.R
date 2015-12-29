@@ -231,10 +231,11 @@ shinyServer(function(input, output, clientData, session) {
     print("Rendering Plot.")
     # if(input$colType == 'Discrete') {
     #   print("Printing 'Discrete' plot.")
-    #   pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
+    #   pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle))
     #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
     # } else {
-      pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
+      print(as.numeric(input$pointStyle))
+      pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
     # }
     print("Plot Rendered.")
   })
@@ -303,7 +304,7 @@ shinyServer(function(input, output, clientData, session) {
 
   output$singlePlot <- renderPlot({
     data <- filterData()
-    plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput))
+    plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
 
   output$info <- renderPrint({

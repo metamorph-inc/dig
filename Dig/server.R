@@ -51,7 +51,7 @@ shinyServer(function(input, output, clientData, session) {
     updateSelectInput(session, "display", selected = varNames[c(1,2)])
     updateCheckboxInput(session, "autoRender", value = TRUE)
     updateCheckboxInput(session, "color", value = FALSE)
-    updateSelectInput(session, "colType", selected = "Max/Min")
+    # updateSelectInput(session, "colType", selected = "Max/Min")
   })
   
   # Sliders ------------------------------------------------------------------
@@ -197,7 +197,7 @@ shinyServer(function(input, output, clientData, session) {
     data$color <- character(nrow(data))
     data$color <- "black"
     if (input$color == TRUE) {
-      if (input$colType == "Max/Min") {
+      # if (input$colType == "Max/Min") {
         name <- isolate(input$colVarNum)
         bottom <- slider[1]
         top <- slider[2]
@@ -210,10 +210,10 @@ shinyServer(function(input, output, clientData, session) {
           data$color[data[[name]] < bottom] <- "green"
           data$color[data[[name]] > top] <- "red"
         }
-      } else {
-        # Coloring of factors is currently unsupported!
-        # data$color[data[[paste(input$colVarFactor)]] %in% input$colSelect,]
-      }
+      # } else {
+      #   # Coloring of factors is currently unsupported!
+      #   # data$color[data[[paste(input$colVarFactor)]] %in% input$colSelect,]
+      # }
     }
     print("Data Colored")
     data
@@ -229,13 +229,13 @@ shinyServer(function(input, output, clientData, session) {
     validate(need(length(vars)>=2, "Please select two or more display variables."))
     
     print("Rendering Plot.")
-    if(input$colType == 'Discrete') {
-      print("Printing 'Discrete' plot.")
+    # if(input$colType == 'Discrete') {
+    #   print("Printing 'Discrete' plot.")
+    #   pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
+    #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
+    # } else {
       pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
-      legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
-    } else {
-      pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color)
-    }
+    # }
     print("Plot Rendered.")
   })
   
@@ -268,7 +268,7 @@ shinyServer(function(input, output, clientData, session) {
 
   infoTable <- eventReactive(input$updateStats, {
     tb <- table(factor(colorData()$color, c("green", "yellow", "red", "black")))
-    if (input$color & input$colType == 'Max/Min') {
+    if (input$color) { # & input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", sum(tb[["green"]], tb[["yellow"]], tb[["red"]], tb[["black"]]),

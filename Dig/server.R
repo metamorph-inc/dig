@@ -324,8 +324,8 @@ shinyServer(function(input, output, clientData, session) {
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
     print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
     print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
-    thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33)
-    sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66)
+    thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33, na.rm=TRUE)
+    sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66, na.rm=TRUE)
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))

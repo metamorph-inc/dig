@@ -21,7 +21,7 @@ shinyUI(fluidPage(
               condition = "input.autoRender == false",
               actionButton("renderPlot", "Render Plot"),
               br()
-            ),
+            ), hr(),
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
@@ -36,10 +36,10 @@ shinyUI(fluidPage(
               #   condition = "input.colType == 'Discrete'",
               #   selectInput("colVarFactor")
               # )
-            ),
+            ), hr(),
             p(strong("Info:")), #br(),
             verbatimTextOutput("stats"),
-            actionButton("updateStats", "Update"), br(), br(),
+            actionButton("updateStats", "Update"), br(), br(), hr(),
             p(strong("Currently Filtered Data:")),
             downloadButton('exportData', 'Dataset'),
             paste("          "),

@@ -321,7 +321,7 @@ shinyServer(function(input, output, clientData, session) {
     data <- isolate(filterData())
     min <- min(data[[paste(input$colVarNum)]], na.rm=TRUE)
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
-    print(paste("colSlider:", input$colSlider[1], input$colSlider[2]))
+    print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
     print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))

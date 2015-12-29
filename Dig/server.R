@@ -323,6 +323,8 @@ shinyServer(function(input, output, clientData, session) {
     max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
     print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
     print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
+    thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33)
+    sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66)
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
@@ -338,7 +340,7 @@ shinyServer(function(input, output, clientData, session) {
                         step = signif(absStep, digits = 4),
                         min = signif(absMin-absStep*10, digits = 4),
                         max = signif(absMax+absStep*10, digits = 4),
-                        value = c(min+0.33*(max-min), min+0.66*(max-min))
+                        value = c(unname(thirtythree), unname(sixtysix))
       )
     }
     if(varClass[[input$colVarNum]] == "integer") {

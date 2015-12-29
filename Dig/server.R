@@ -314,7 +314,7 @@ shinyServer(function(input, output, clientData, session) {
   # Data Table Tab --------------------------------------------------------------------------------
   output$table <- renderDataTable({
     input$updateDataTable
-    data <- isolate(colorData())
+    data <- isolate(filterData())
   })
   
   # UI Adjustments -----------------------------------------------------------

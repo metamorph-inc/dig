@@ -223,19 +223,21 @@ shinyServer(function(input, output, clientData, session) {
   output$pairsPlot <- renderPlot({
     if (input$autoRender == TRUE) {
       vars <- varsList()
+      data <- colorData()
     } else {
-      vars <- varsListSlow()
+      vars <- slowVarsList()
+      data <- slowData()
     }
     validate(need(length(vars)>=2, "Please select two or more display variables."))
     
     print("Rendering Plot.")
     # if(input$colType == 'Discrete') {
     #   print("Printing 'Discrete' plot.")
-    #   pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle))
+    #   pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle))
     #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
     # } else {
-      print(as.numeric(input$pointStyle))
-      pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+      # print(as.numeric(input$pointStyle))
+      pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
     # }
     print("Plot Rendered.")
   })
@@ -251,7 +253,7 @@ shinyServer(function(input, output, clientData, session) {
     idx
   })
   
-  varsListSlow <- eventReactive(input$renderPlot, {
+  slowVarsList <- eventReactive(input$renderPlot, {
     print(paste("input$renderPlot:", input$renderPlot))
     print("Getting Variable List.")
     idx = 0
@@ -261,6 +263,10 @@ shinyServer(function(input, output, clientData, session) {
     }
     print(idx)
     idx
+  })
+  
+  slowData <- eventReactive(input$renderPlot, {
+    colorData()
   })
   
   output$stats <- renderText({

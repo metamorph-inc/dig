@@ -360,7 +360,7 @@ shinyServer(function(input, output, clientData, session) {
                         "colSlider",
                         min = absMin,
                         max = absMax,
-                        value = c(floor(min+0.33*(max-min)), ceiling(min+0.66*(max-min)))
+                        value = c(floor(thirtythree), ceiling(sixtysix))
       )
     }
   }

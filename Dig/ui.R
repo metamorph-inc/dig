@@ -12,16 +12,16 @@ shinyUI(fluidPage(
         column(3,
           br(),
           wellPanel(
+            h4("Plot Options"),
             selectInput("display",
-                        "Display:",
+                        "Display Variables:",
                         c(),
                         multiple = TRUE),
-            checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
             conditionalPanel(
               condition = "input.autoRender == false",
               actionButton("renderPlot", "Render Plot"),
               br()
-            ), br(),
+            ), hr(),
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
@@ -37,10 +37,10 @@ shinyUI(fluidPage(
               #   selectInput("colVarFactor")
               # )
             ), hr(),
-            p(strong("Info:")), #br(),
+            h4("Info"), #br(),
             verbatimTextOutput("stats"),
-            actionButton("updateStats", "Update"), br(), br(), hr(),
-            p(strong("Currently Filtered Data:")),
+            actionButton("updateStats", "Update"), br(), hr(),
+            h4("Download"),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
             downloadButton('exportPlot', 'Plot'), hr(),
@@ -84,9 +84,28 @@ shinyUI(fluidPage(
         )
       )
     ),
-    tabPanel("Options", fluidRow(column(3, br(), wellPanel(fluidRow(p(strong("Point Options:")),
-      column(6, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
-      column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))))), column(9))
+    tabPanel("Options",
+      fluidRow(
+        column(3,
+          br(),
+          wellPanel(
+            h4("Render Options"),
+            checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
+            hr(),
+            p(strong("Point Options:")),
+            fluidRow(
+              column(6, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
+              column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))
+            ),
+            hr(),
+            h4("About"),
+            p(strong("Version:"), "v1.1.0"),
+            p(strong("Date:"), "12/29/2015"),
+            p(strong("Developer:"), "Metamorph Software"),
+            p(strong("Support:"), "tthomas@metamorphsoftware.com")
+          )
+        ),
+      column(9))
     )
   ),
   h3("Filter Data:"),

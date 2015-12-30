@@ -1,24 +1,11 @@
 library(shiny)
 
-
-# raw <- read.csv("../../results/mergedPET.csv", fill=T)
-raw <- read.csv("../data.csv", fill=T)
-raw[is.na(raw)] <- 0
-
-varNames = ls(raw,sort=FALSE)
-varClass = sapply(raw,class)
-
-rawMin = apply(raw,2,min, na.rm=TRUE)
-rawMax = apply(raw,2,max, na.rm=TRUE)
-print(paste("rawMin:", rawMin))
-
-print(varNames)
-
-# Define UI for BladeMDA application
+# Define UI for PET Design Space Browser application
 shinyUI(fluidPage(
 
   #  Application title
   titlePanel("PET Design Space Browser"),
+  #verbatimTextOutput("debug"),
   tabsetPanel(
     tabPanel("Pairs Plot",
       fluidRow(
@@ -27,101 +14,88 @@ shinyUI(fluidPage(
           wellPanel(
             selectInput("display",
                         "Display:",
-                        varNames,
-                        multiple = TRUE,
-                        selected = varNames[c(1,2)]),
-            checkboxInput("autoRender", "Automatically Rerender", value = FALSE),
+                        c(),
+                        multiple = TRUE),
+            checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
             conditionalPanel(
               condition = "input.autoRender == false",
               actionButton("renderPlot", "Render Plot"),
               br()
-            ),
-            checkboxInput("color", "Color Data", value = TRUE),
+            ), br(),
+            checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
-              selectInput("colVar", "Colored Variable:", varNames, selected = varNames[c(1)]),
-              radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
-              sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
-            ),
-            p(strong("Info:")),
-            actionButton("updateStats", "Update"),
-            br(),br(),
+              # selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
+              # conditionalPanel(
+                # condition = "input.colType == 'Max/Min'",
+                selectInput("colVarNum", "Colored Variable:", c()),
+                radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
+                sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
+              # )
+              # conditionalPanel(
+              #   condition = "input.colType == 'Discrete'",
+              #   selectInput("colVarFactor")
+              # )
+            ), hr(),
+            p(strong("Info:")), #br(),
             verbatimTextOutput("stats"),
+            actionButton("updateStats", "Update"), br(), br(), hr(),
             p(strong("Currently Filtered Data:")),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
-            downloadButton('exportPlot', 'Plot')
+            downloadButton('exportPlot', 'Plot'), hr(),
+            actionButton("resetOptions", "Reset to Default Options")
           )
         ),
         column(9,
           plotOutput("pairsPlot", height=700)
-            # tabPanel("Table", tableOutput("table"))
         )
       )
     ),
-    tabPanel("SinglePlot",
+    tabPanel("Single Plot",
       fluidRow(
         column(3,
           br(),
           wellPanel(
-            p(strong("Plot:")),
-            selectInput("xInput", "X-axis", varNames, selected = varNames[c(1)]),
-            selectInput("yInput", "Y-Axis", varNames, selected = varNames[c(2)]),
+            selectInput("xInput", "X-axis", c()),
+            selectInput("yInput", "Y-Axis", c()),
             br(),
-            p(strong("Selection:")),
-            actionButton("updateX", "Constrain X"),
-            actionButton("updateY", "Constrain Y"),
-            actionButton("updateBoth", "Constrain Both")
-            # p(strong("Info:")),
-            # actionButton("updateStatsSingle", "Update"),
-            # br(),
-            # verbatimTextOutput("statsSingle")
+            p(strong("Adjust Sliders to Selection:")),
+            actionButton("updateX", "X"),
+            actionButton("updateY", "Y"),
+            actionButton("updateBoth", "Both")
           )
         ),
         column(9,
           plotOutput("singlePlot", click = "plot_click", brush = "plot_brush", height=700)
         ),
         column(12,
-          # tableOutput('table')
           verbatimTextOutput("info")
         )
       )
+    ),
+    tabPanel("Data Table",
+      wellPanel(
+        fluidRow(
+          br(), actionButton("updateDataTable", "Update Data Table"), br(), br()
+        ),
+        fluidRow(
+          dataTableOutput(outputId="table")
+        )
+      )
+    ),
+    tabPanel("Options", fluidRow(column(3, br(), wellPanel(fluidRow(p(strong("Point Options:")),
+      column(6, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
+      column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))))), column(9))
     )
   ),
-  fluidRow(
-    lapply(1:length(varNames), function(i) {
-      print(paste(i, varNames[i], varClass[i]))
-      column(2,
-        if(varClass[i] == "numeric") {
-          max <- as.numeric(unname(rawMax[varNames[i]]))
-          min <- as.numeric(unname(rawMin[varNames[i]]))
-          sliderInput(paste0('inp', i),
-                      varNames[i],
-                      step = signif((unname(rawMax[varNames[i]])-unname(rawMin[varNames[i]]))*0.01, digits = 2),
-                      min = signif(as.numeric(unname(rawMin[varNames[i]]))*0.95, digits = 2),
-                      max = signif(unname(rawMax[varNames[i]])*1.05, digits = 2),
-                      value = c(signif(unname(rawMin[varNames[i]])*0.95, digits = 2),signif(unname(rawMax[varNames[i]])*1.05, digits = 2)))
-        } else {
-          if (varClass[i] == "factor") {
-            selectInput(paste0('inp', i),
-                        varNames[i],
-                        multiple = TRUE,
-                        selectize = FALSE,
-                        choices = names(table(raw[varNames[i]])))
-          } else {
-            if (varClass[i] == "integer") {
-              max <- as.numeric(unname(rawMax[varNames[i]]))
-              min <- as.numeric(unname(rawMin[varNames[i]]))
-              sliderInput(paste0('inp', i),
-                          varNames[i],
-                          min = min,
-                          max = max,
-                          value = c(min, max))
-            }
-          }
-        }
-      )
-    })
-  )
+  h3("Filter Data:"),
+  actionButton("resetSliders", "Reset All Sliders"), br(), br(),
+  uiOutput("enums"),
+  uiOutput("sliders"),
+  h3("Constants:"),
+  uiOutput("constants")
+  
+  
 )
 )

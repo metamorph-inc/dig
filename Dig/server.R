@@ -46,12 +46,18 @@ shinyServer(function(input, output, clientData, session) {
   updateSelectInput(session, "xInput", choices = varRange, selected = varRange[c(1)])
   updateSelectInput(session, "yInput", choices = varRange, selected = varRange[c(2)])
   
-  resetDefaultOptions <- observeEvent(input$resetOptions, {
-    print("In resetDefaultOptions()")
-    updateCheckboxInput(session, "autoRender", value = TRUE)
+  resetPlotOptions <- observeEvent(input$resetOptions, {
+    print("In resetPlotOptions()")
     updateSelectInput(session, "display", selected = varRange[c(1,2)])
     updateCheckboxInput(session, "color", value = FALSE)
     # updateSelectInput(session, "colType", selected = "Max/Min")
+  })
+  
+  resetViewerOptions <- observeEvent(input$resetSettings, {
+    print("In resetViewerSettings()")
+    updateCheckboxInput(session, "autoRender", value = TRUE)
+    updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
+    updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
   })
   
   # Sliders ------------------------------------------------------------------

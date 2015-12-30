@@ -98,6 +98,8 @@ shinyUI(fluidPage(
               column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))
             ),
             hr(),
+            actionButton("resetSettings", "Reset to Default Settings"),
+            hr(),
             h4("About"),
             p(strong("Version:"), "v1.1.0"),
             p(strong("Date:"), "12/29/2015"),
@@ -109,7 +111,7 @@ shinyUI(fluidPage(
     )
   ),
   h3("Filter Data:"),
-  actionButton("resetSliders", "Reset All Sliders"), br(), br(),
+  actionButton("resetSliders", "Reset Sliders"), br(), br(),
   uiOutput("enums"),
   uiOutput("sliders"),
   h3("Constants:"),

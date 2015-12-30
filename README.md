@@ -8,9 +8,9 @@ Magical information discovery. Designed for mortals.
     docker run -d -v "$(pwd)"/webserver/public/csvs/:/media/sf_kevin/Downloads -p 3838:3838 --name dig dig
     cd webserver
     docker build -t dig_webserver .
-    sudo docker run -d -p 4545:4545 --link dig:dig -v "$(pwd)"/public/csvs/:/srv/public/csvs/ --name dig_webserver dig_webserver
+    sudo docker run -d -p 80:4545 --link dig:dig -v "$(pwd)"/public/csvs/:/srv/public/csvs/ --name dig_webserver dig_webserver
 
-http://localhost:4545/
+http://localhost/
 
 Fix permission issue (TODO: when and why does this appear)
 

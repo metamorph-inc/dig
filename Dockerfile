@@ -15,7 +15,7 @@ gdebi -n shiny-server-1.4.1.759-amd64.deb
 # TODO apt cleanup and rm -rf /tmp/Rtmp3UiJpA/downloaded_packages
 
 ADD Dig /srv/shiny-server/Dig
-RUN chmod -R o+rx /srv/shiny-server/Dig
+RUN chmod -R o+rx /srv/shiny-server/Dig && chmod 777 /srv/shiny-server/Dig
 
 # TODO rmarkdown?
 # /etc/shiny-server/shiny-server.conf

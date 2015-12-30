@@ -37,19 +37,19 @@ shinyServer(function(input, output, clientData, session) {
   
   varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0")]
   varRange <- varRange[!is.na(varRange)]
-  varRange <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
-  print(paste("varRange", varRange))
+  varRangeNum <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
+  print(paste("varRange", varRangeNum))
 
   print("Updating Panel Selections...")
-  updateSelectInput(session, "colVarNum", choices = varRange, selected = varRange[c(1)])
-  updateSelectInput(session, "display", choices = varNames, selected = varNames[c(1,2)])
-  updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
-  updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
+  updateSelectInput(session, "colVarNum", choices = varRangeNum, selected = varRangeNum[c(1)])
+  updateSelectInput(session, "display", choices = varRange, selected = varRange[c(1,2)])
+  updateSelectInput(session, "xInput", choices = varRange, selected = varRange[c(1)])
+  updateSelectInput(session, "yInput", choices = varRange, selected = varRange[c(2)])
   
   resetDefaultOptions <- observeEvent(input$resetOptions, {
     print("In resetDefaultOptions()")
-    updateSelectInput(session, "display", selected = varNames[c(1,2)])
     updateCheckboxInput(session, "autoRender", value = TRUE)
+    updateSelectInput(session, "display", selected = varRange[c(1,2)])
     updateCheckboxInput(session, "color", value = FALSE)
     # updateSelectInput(session, "colType", selected = "Max/Min")
   })
@@ -380,7 +380,7 @@ shinyServer(function(input, output, clientData, session) {
   
   updateSlider <- function(varName, min, max) {
     if(!is.null(min) & !is.null(max)) {
-      if(varName %in% varRange) {
+      if(varName %in% varRangeNum) {
         print(paste0("Updating ", varName, " Slider: ", min, " to ", max))
         updateSliderInput(session,
                           paste0("inp", match(varName, varNames)),

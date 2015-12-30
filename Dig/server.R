@@ -53,12 +53,12 @@ shinyServer(function(input, output, clientData, session) {
     # updateSelectInput(session, "colType", selected = "Max/Min")
   })
   
-  resetViewerOptions <- observeEvent(input$resetSettings, {
-    print("In resetViewerSettings()")
-    updateCheckboxInput(session, "autoRender", value = TRUE)
-    updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
-    updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
-  })
+  # resetViewerOptions <- observeEvent(input$resetSettings, {
+  #   print("In resetViewerSettings()")
+  #   updateCheckboxInput(session, "autoRender", value = TRUE)
+  #   updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
+  #   updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
+  # })
   
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({

@@ -79,10 +79,11 @@ shinyServer(function(input, output, clientData, session) {
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          # cat("Step", (max-min)*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
-          step <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
-          # print(paste(column, "min", min, "max", max, "step", step))
-          if (step != 0) {
+          diff <- (max-min)
+          # print(paste(column, "min", min, "max", max, "diff", diff))
+          if (diff != 0) {
+            step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
+            # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
             column(2,
               sliderInput(paste0('inp', column),
                           varNames[column],
@@ -118,8 +119,8 @@ shinyServer(function(input, output, clientData, session) {
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          step <- (max-min)*0.01
-          if (step == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
+          diff <- (max-min)
+          if (diff == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
         } else {
           if (varClass[column] == "integer") {
             max <- as.integer(unname(rawAbsMax[varNames[column]]))
@@ -141,8 +142,9 @@ shinyServer(function(input, output, clientData, session) {
       if(varClass[column] == "numeric") {
         max <- as.numeric(unname(rawAbsMax[varNames[column]]))
         min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-        step <- (max-min)*0.01
-        if (step != 0) {
+        diff <- (max-min)
+        if (diff != 0) {
+          step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
           updateSliderInput(session, paste0('inp', column), value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
         }
       } else {
@@ -336,7 +338,7 @@ shinyServer(function(input, output, clientData, session) {
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
-    absStep <- (max-min)*0.01
+    absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
     # print(paste("class(max)", class(max), "class(min)", class(min)))
     # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
     # print(paste(absMin, min, max, absMax))

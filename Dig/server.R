@@ -79,7 +79,8 @@ shinyServer(function(input, output, clientData, session) {
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          step <- (max-min)*0.01
+          # cat("Step", (max-min)*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
+          step <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
           # print(paste(column, "min", min, "max", max, "step", step))
           if (step != 0) {
             column(2,

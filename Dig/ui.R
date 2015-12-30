@@ -101,7 +101,7 @@ shinyUI(fluidPage(
             actionButton("resetSettings", "Reset to Default Settings"),
             hr(),
             h4("About"),
-            p(strong("Version:"), "v1.1.0"),
+            p(strong("Version:"), "v1.1.2"),
             p(strong("Date:"), "12/29/2015"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")

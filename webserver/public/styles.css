@@ -1,17 +1,8 @@
 body
 {
 	font-family: "Segoe UI", Tahoma, Helvetica, freesans, sans-serif;
-	font-size: 90%;
-	margin: 1em 10em;
 	color: #333;
 	background-color: #fff;
-    max-width: 40em;
-}
-
-h1, h2
-{
-	font-size: 1.5em;
-	font-weight: normal;
 }
 
 #drop-zone {
@@ -64,4 +55,8 @@ h1, h2
 
 #clickHere:hover {
 	background-color: #4499DD;
+}
+
+div.browser-links div.btn-group {
+	margin-bottom: 0.5em;
 }

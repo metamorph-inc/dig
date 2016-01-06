@@ -24,6 +24,8 @@
     self.selectedProblemFilter = null;
     self.filteredProblems = [ ];
 
+    self.loadingProblemToAnalyzer = false;
+
     self.selectProblem   = selectProblem;
     self.selectProblemFilter = selectProblemFilter;
     self.buildProblemFilters = buildProblemFilters;
@@ -111,6 +113,7 @@
     }
 
     function loadInAnalyzer(problemId) {
+      self.loadingProblemToAnalyzer = true;
       return $http.jsonp($location.search().couchdb + '/_design/mdao/_list/as_csv/by_problem_id?key="' + problemId + '"&include_docs=true&callback=JSON_CALLBACK').then(
         function successCallback(response) {
           problemCsv = response.data.csv;
@@ -124,14 +127,21 @@
           .success(function(response){
             console.log("Success! CSV is " + response.id);
             $window.open("/Dig/?csvfilename=" + response.id);
+            self.loadingProblemToAnalyzer = false;
           })
           .error(function(){
+            self.loadingProblemToAnalyzer = false;
           });
         }, 
         function errorCallback(reason) {
           //Forward rejection to next handler
           console.log("Download failed: ", reason);
+          self.loadingProblemToAnalyzer = false;
           return $q.reject(reason)
+        },
+        function notifyCallback(update) {
+          console.log("Update");
+          console.log(update);
         }
       );
     }

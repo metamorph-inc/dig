@@ -84,8 +84,9 @@
       <div class="md-toolbar-tools">
         <h2><span>{{pl.selected.problem_id}}</span></h2>
         <span flex></span>
+        <md-progress-circular class="md-accent" md-mode="indeterminate" ng-if="pl.loadingProblemToAnalyzer"></md-progress-circular>
+        <md-button ng-click="pl.loadInAnalyzer(pl.selected.problem_id)" class="md-raised" ng-disabled="pl.loadingProblemToAnalyzer" aria-label="Load in analyzer">Load in analyzer</md-button>
         <md-button ng-href="{{pl.$location.search().couchdb}}/_design/mdao/_list/as_csv/by_problem_id?key=%22{{pl.selectedDetails.problem_id}}%22&amp;include_docs=true" class="md-raised" aria-label="Download CSV">Download CSV</md-button>
-        <md-button ng-click="pl.loadInAnalyzer(pl.selected.problem_id)" class="md-raised" aria-label="Load in analyzer">Load in analyzer</md-button>
       </div>
     </md-toolbar>
 
@@ -127,7 +128,7 @@
 
                       $mdThemingProvider.theme('default')
                           .primaryPalette('cyan')
-                          .accentPalette('deep-orange');
+                          .accentPalette('cyan');
 
               });
 

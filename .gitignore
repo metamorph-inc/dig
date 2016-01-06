@@ -3,4 +3,7 @@ webserver/node_modules
 webserver/sessions
 webserver/server.log  
 webserver/public/csvs/*.csv
+webserver/public/bower_components
 .Rproj.user
+.DS_Store
+._.DS_Store

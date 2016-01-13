@@ -1,29 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Dig file upload</title>
-<link rel="stylesheet" type="text/css" media="all" href="styles.css" />
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dig file upload</title>
+
+  <!-- Bootstrap -->
+  <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+
+  <link rel="stylesheet" type="text/css" media="all" href="styles.css" />
 </head>
 <body>
 
-<h1>Dig CSV Upload</h1>
-<form id="upload" action="csv" method="POST" enctype="multipart/form-data">
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <h2>Dig CSV Upload</h2>
+      <form id="upload" action="csv" method="POST" enctype="multipart/form-data">
 
-	<div id="drop-zone">
-		Drop .csv here
-		<div id="clickHere">
-			Choose file
-			<input type="file" name="file" id="file" />
-		</div>
-	</div>
-	<button id="submitbutton" type="submit" style="display: none">Upload File</button>
+      	<div id="drop-zone">
+      		Drop .csv here
+      		<div id="clickHere">
+      			Choose file
+      			<input type="file" name="file" id="file" />
+      		</div>
+      	</div>
+      	<button id="submitbutton" type="submit" style="display: none">Upload File</button>
 
-</fieldset>
+      </fieldset>
 
-</form>
+      </form>
+    </div>
+
+    <div class="col-md-6">
+      <h2>Dig Results Browser</h2>
+      <form id="browser" action="/browser/" method="get">
+        <div class="input-group">
+        <input type="text" name="couchdb" placeholder="CouchDB Database URL" class="form-control db-url-field">
+        <span class="input-group-btn">
+          <button id="submit_browser" type="submit" class="btn btn-primary">Go</button>
+        </span>
+        </div>
+        
+      </form>
+
+      <h3>Quick Links</h3>
+      <div class="browser-links">
+      <div class="btn-group" role="group">
+          <a href="/browser?couchdb=http://blademda-couchdb.metamorphsoftware.com/iterations" class="btn btn-default">http://blademda-couchdb.metamorphsoftware.com/iterations</a>
+          <a href="/browser?couchdb=http://blademda-couchdb.metamorphsoftware.com/iterations" class="btn btn-primary">Go</a>
+        </div>
+        <br>
+        <div class="btn-group" role="group">
+          <a href="/browser?couchdb=http://localhost:5984/iterations" class="btn btn-default">http://localhost:5984/iterations</a>
+          <a href="/browser?couchdb=http://localhost:5984/iterations" class="btn btn-primary">Go</a>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 <script src="filedrag.js"></script>
+<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 </body>
 </html>

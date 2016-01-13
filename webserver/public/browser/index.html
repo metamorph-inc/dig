@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" >
+  <head>
+    <title>OpenMDAO Problem Browser</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+    <base href="/">
+
+    <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Roboto:400,500,700,400italic'>
+    <link rel="stylesheet" href="/bower_components/angular-material/angular-material.css"/>
+    <link rel="stylesheet" href="/browser/assets/app.css"/>
+
+    <style type="text/css">
+        /**
+         * Hide when Angular is not yet loaded and initialized
+         */
+        [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+          display: none !important;
+        }
+    </style>
+
+  </head>
+  <body ng-app="mdaoProblemBrowser" layout="row" ng-controller="ProblemController as pl" ng-cloak>
+
+  <md-sidenav class="site-sidenav md-sidenav-left md-whiteframe-z2"
+                md-component-id="left"
+                md-is-locked-open="true">
+
+    <md-toolbar layout="row" class="md-whiteframe-z1">
+      <div class="md-toolbar-tools">
+        <h2><span>Groups</span></h2>
+      </div>
+    </md-toolbar>
+
+    <md-content flex>
+      <md-list>
+        <md-list-item ng-repeat="it in pl.problemFilters" class="md-3-line">
+            <md-button ng-click="pl.selectProblemFilter(it)" ng-class="{'selected' : it.problem_group === pl.selectedProblemFilter }">
+              <div class="md-list-item-text" layout="column">
+                <h3>{{it.problem_group}}</h3>
+                <p>Problems: {{it.problem_count}}</p>
+                <p>Iterations: {{it.iteration_count}}</p>
+              </div>
+            </md-button>
+        </md-list-item>
+      </md-list>
+    </md-content>
+
+  </md-sidenav>
+
+  <md-sidenav class="site-sidenav md-sidenav-left md-whiteframe-z2"
+                md-component-id="left"
+                md-is-locked-open="true">
+
+    <md-toolbar layout="row" class="md-whiteframe-z1">
+      <div class="md-toolbar-tools">
+        <h2><span>Problems</span></h2>
+      </div>
+    </md-toolbar>
+
+    <md-content flex>
+      <md-list>
+        <md-list-item ng-repeat="it in pl.filteredProblems" class="md-2-line">
+            <md-button ng-click="pl.selectProblem(it)" ng-class="{'selected' : it === pl.selected }">
+              <div class="md-list-item-text" layout="column">
+                <h3>{{it.problem_id}}</h3>
+                <p>Iterations: {{it.iteration_count}}</p>
+              </div>
+            </md-button>
+        </md-list-item>
+      </md-list>
+    </md-content>
+
+  </md-sidenav>
+
+
+  <div flex layout="column" tabIndex="-1" role="main" class="md-whiteframe-z2">
+
+    <md-toolbar layout="row" class="md-whiteframe-z1">
+      <div class="md-toolbar-tools">
+        <h2><span>{{pl.selected.problem_id}}</span></h2>
+        <span flex></span>
+        <md-progress-circular class="md-accent" md-mode="indeterminate" ng-if="pl.loadingProblemToAnalyzer"></md-progress-circular>
+        <md-button ng-click="pl.loadInAnalyzer(pl.selected.problem_id)" class="md-raised" ng-disabled="pl.loadingProblemToAnalyzer" aria-label="Load in analyzer">Load in analyzer</md-button>
+        <md-button ng-href="{{pl.$location.search().couchdb}}/_design/mdao/_list/as_csv/by_problem_id?key=%22{{pl.selectedDetails.problem_id}}%22&amp;include_docs=true" class="md-raised" aria-label="Download CSV">Download CSV</md-button>
+      </div>
+    </md-toolbar>
+
+    <md-content flex id="content">
+      <div ng-if="pl.selectedDetails">
+        <h2>{{pl.selectedDetails.problem_id}}</h2>
+        <p>Number of iterations: {{pl.selected.iteration_count}}</p>
+
+        <h3>Params</h3>
+        <ul>
+          <li ng-repeat="item in pl.selectedDetails.params | orderBy:'toString()'">{{item}}</li>
+        </ul>
+
+        <h3>Unknowns</h3>
+        <ul>
+          <li ng-repeat="item in pl.selectedDetails.unknowns | orderBy:'toString()'">{{item}}</li>
+        </ul>
+      </div>
+    </md-content>
+  </div>
+
+    <script src="/bower_components/angular/angular.js"></script>
+    <script src="/bower_components/angular-animate/angular-animate.js"></script>
+    <script src="/bower_components/angular-aria/angular-aria.js"></script>
+    <script type="text/javascript" src="/bower_components/angular-material/angular-material.js"></script>
+
+    <script src="/browser/src/problems/Problems.js"></script>
+    <script src="/browser/src/problems/ProblemController.js"></script>
+    <script src="/browser/src/problems/ProblemService.js"></script>
+
+    <script type="text/javascript">
+
+          angular
+              .module('mdaoProblemBrowser', ['ngMaterial', 'problems'])
+              .config(function($mdThemingProvider, $mdIconProvider){
+
+                  $mdIconProvider
+                      .icon("menu"       , "/browser/assets/svg/menu.svg"        , 24)
+
+                      $mdThemingProvider.theme('default')
+                          .primaryPalette('cyan')
+                          .accentPalette('cyan');
+
+              });
+
+    </script>
+
+  </body>
+</html>

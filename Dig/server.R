@@ -37,22 +37,28 @@ shinyServer(function(input, output, clientData, session) {
   
   varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0")]
   varRange <- varRange[!is.na(varRange)]
-  varRange <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
-  print(paste("varRange", varRange))
+  varRangeNum <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
+  print(paste("varRange", varRangeNum))
 
   print("Updating Panel Selections...")
-  updateSelectInput(session, "colVarNum", choices = varRange, selected = varRange[c(1)])
-  updateSelectInput(session, "display", choices = varNames, selected = varNames[c(1,2)])
-  updateSelectInput(session, "xInput", choices = varNames, selected = varNames[c(1)])
-  updateSelectInput(session, "yInput", choices = varNames, selected = varNames[c(2)])
+  updateSelectInput(session, "colVarNum", choices = varRangeNum, selected = varRangeNum[c(1)])
+  updateSelectInput(session, "display", choices = varRange, selected = varRange[c(1,2)])
+  updateSelectInput(session, "xInput", choices = varRange, selected = varRange[c(1)])
+  updateSelectInput(session, "yInput", choices = varRange, selected = varRange[c(2)])
   
-  resetDefaultOptions <- observeEvent(input$resetOptions, {
-    print("In resetDefaultOptions()")
-    updateSelectInput(session, "display", selected = varNames[c(1,2)])
-    updateCheckboxInput(session, "autoRender", value = TRUE)
+  resetPlotOptions <- observeEvent(input$resetOptions, {
+    print("In resetPlotOptions()")
+    updateSelectInput(session, "display", selected = varRange[c(1,2)])
     updateCheckboxInput(session, "color", value = FALSE)
     # updateSelectInput(session, "colType", selected = "Max/Min")
   })
+  
+  # resetViewerOptions <- observeEvent(input$resetSettings, {
+  #   print("In resetViewerSettings()")
+  #   updateCheckboxInput(session, "autoRender", value = TRUE)
+  #   updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
+  #   updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
+  # })
   
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
@@ -79,9 +85,11 @@ shinyServer(function(input, output, clientData, session) {
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          step <- (max-min)*0.01
-          # print(paste(column, "min", min, "max", max, "step", step))
-          if (step != 0) {
+          diff <- (max-min)
+          # print(paste(column, "min", min, "max", max, "diff", diff))
+          if (diff != 0) {
+            step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
+            # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
             column(2,
               sliderInput(paste0('inp', column),
                           varNames[column],
@@ -117,8 +125,8 @@ shinyServer(function(input, output, clientData, session) {
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          step <- (max-min)*0.01
-          if (step == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
+          diff <- (max-min)
+          if (diff == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
         } else {
           if (varClass[column] == "integer") {
             max <- as.integer(unname(rawAbsMax[varNames[column]]))
@@ -140,8 +148,9 @@ shinyServer(function(input, output, clientData, session) {
       if(varClass[column] == "numeric") {
         max <- as.numeric(unname(rawAbsMax[varNames[column]]))
         min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-        step <- (max-min)*0.01
-        if (step != 0) {
+        diff <- (max-min)
+        if (diff != 0) {
+          step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
           updateSliderInput(session, paste0('inp', column), value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
         }
       } else {
@@ -223,19 +232,21 @@ shinyServer(function(input, output, clientData, session) {
   output$pairsPlot <- renderPlot({
     if (input$autoRender == TRUE) {
       vars <- varsList()
+      data <- colorData()
     } else {
-      vars <- varsListSlow()
+      vars <- slowVarsList()
+      data <- slowData()
     }
     validate(need(length(vars)>=2, "Please select two or more display variables."))
     
     print("Rendering Plot.")
     # if(input$colType == 'Discrete') {
     #   print("Printing 'Discrete' plot.")
-    #   pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle))
+    #   pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle))
     #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
     # } else {
-      print(as.numeric(input$pointStyle))
-      pairs(colorData()[vars],lower.panel = panel.smooth,upper.panel=NULL, col=colorData()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+      # print(as.numeric(input$pointStyle))
+      pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
     # }
     print("Plot Rendered.")
   })
@@ -251,7 +262,7 @@ shinyServer(function(input, output, clientData, session) {
     idx
   })
   
-  varsListSlow <- eventReactive(input$renderPlot, {
+  slowVarsList <- eventReactive(input$renderPlot, {
     print(paste("input$renderPlot:", input$renderPlot))
     print("Getting Variable List.")
     idx = 0
@@ -261,6 +272,10 @@ shinyServer(function(input, output, clientData, session) {
     }
     print(idx)
     idx
+  })
+  
+  slowData <- eventReactive(input$renderPlot, {
+    colorData()
   })
   
   output$stats <- renderText({
@@ -329,7 +344,7 @@ shinyServer(function(input, output, clientData, session) {
     
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
-    absStep <- (max-min)*0.01
+    absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
     # print(paste("class(max)", class(max), "class(min)", class(min)))
     # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
     # print(paste(absMin, min, max, absMax))
@@ -351,7 +366,7 @@ shinyServer(function(input, output, clientData, session) {
                         "colSlider",
                         min = absMin,
                         max = absMax,
-                        value = c(floor(min+0.33*(max-min)), ceiling(min+0.66*(max-min)))
+                        value = c(floor(thirtythree), ceiling(sixtysix))
       )
     }
   }
@@ -371,7 +386,7 @@ shinyServer(function(input, output, clientData, session) {
   
   updateSlider <- function(varName, min, max) {
     if(!is.null(min) & !is.null(max)) {
-      if(varName %in% varRange) {
+      if(varName %in% varRangeNum) {
         print(paste0("Updating ", varName, " Slider: ", min, " to ", max))
         updateSliderInput(session,
                           paste0("inp", match(varName, varNames)),
@@ -387,6 +402,12 @@ shinyServer(function(input, output, clientData, session) {
     } else {print("Error: no selection available for update.")}
   }
 
+  constrainXVariable <- eventReactive (input$updateX, {
+    print("In constrainXVariable()")
+    #print(paste("new upper value", input$xInput, "=", input$plot_brush$xmax))
+    #updateSliderInput()
+  })
+  
   observe({
     print("Observing.")
     if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {

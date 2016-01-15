@@ -35,7 +35,7 @@ shinyServer(function(input, output, clientData, session) {
   rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
   rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
   
-  varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0")]
+  varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0") | (varClass == "factor")]
   varRange <- varRange[!is.na(varRange)]
   varRangeNum <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
   print(paste("varRange", varRangeNum))

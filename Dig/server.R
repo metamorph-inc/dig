@@ -27,19 +27,43 @@ shinyServer(function(input, output, clientData, session) {
     raw = read.csv("../../results/mergedPET.csv", fill=T)
   }
   
+  
+  
   # Pre-processing -----------------------------------------------------------
+  # print(str(raw))
+  
+  print("Starting Preprocessing of the Data -----------------------------------------")
+  
   varNames = names(raw)
   varClass = sapply(raw,class)
-  varFactor <- varNames[varClass == "factor"]
+  print(paste("varClass:"))
+  print(paste(varClass))
   
-  rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
-  rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
+  varFac <- varNames[varClass == "factor"]
+  print(paste("varFac:"))
+  print(paste(varFac))
   
-  varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0") | (varClass == "factor")]
-  varRange <- varRange[!is.na(varRange)]
-  varRangeNum <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
-  print(paste("varRange", varRangeNum))
+  varNum <- varNames[varClass != "factor"]
+  print(paste("varNum:"))
+  print(paste(varNum))
+  
+  rawAbsMin = apply(raw[varNum], 2, min, na.rm=TRUE)
+  rawAbsMax = apply(raw[varNum], 2, max, na.rm=TRUE)
+  print(paste(rawAbsMax))
+  print(paste(rawAbsMin))
 
+  varRangeNum <- varNum[rawAbsMin != rawAbsMax]
+  print(paste("varRangeNum:"))
+  print(paste(varRangeNum))
+  
+  varRangeFac <- varFac[apply(raw[varFac], 2, function(x) (length(names(table(x))) > 1))]
+  print(paste("varRangeFac:"))
+  print(paste(varRangeFac))
+  
+  varRange <- c(varRangeFac, varRangeNum)
+  print(paste("varRange:"))
+  print(paste(varRange))
+  
   print("Updating Panel Selections...")
   updateSelectInput(session, "colVarNum", choices = varRangeNum, selected = varRangeNum[c(1)])
   updateSelectInput(session, "display", choices = varRange, selected = varRange[c(1,2)])
@@ -59,6 +83,8 @@ shinyServer(function(input, output, clientData, session) {
   #   updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
   #   updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
   # })
+  
+  print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
   
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({

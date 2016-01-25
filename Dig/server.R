@@ -107,7 +107,7 @@ shinyServer(function(input, output, clientData, session) {
   output$sliders <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
-        print(paste(column, varNames[column], varClass[column]))
+        # print(paste(column, varNames[column], varClass[column]))
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
@@ -147,7 +147,7 @@ shinyServer(function(input, output, clientData, session) {
   output$constants <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
-        print(paste(column, varNames[column], varClass[column]))
+        # print(paste(column, varNames[column], varClass[column]))
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
@@ -207,16 +207,19 @@ shinyServer(function(input, output, clientData, session) {
       # print(paste("column: ", column, "Checking", nname, "rng", rng[1], "(", rawAbsMin[column], ",", rawAbsMax[column], ")", rng[2]))
       if(length(rng) != 0) {
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          # print(paste("Filtering between", rng[1], "and", rng[2]))
-          data <- data[data[nname] >= rng[1],]
-          data <- data[data[nname] <= rng[2],]
+          # print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
+          above <- (data[[nname]] >= rng[1])
+          below <- (data[[nname]] <= rng[2])
+          inRange <- above & below
         } else {
           if (varClass[column]=="factor") {
-            # print(paste(class(rng)))
+            # print(paste(varNames[column],class(rng)))
             # print(paste(rng))
-            data <- data[data[[nname]] %in% rng,]
+            inRange <- (data[[nname]] %in% rng)
           }
         }
+        if(input$removeMissing == FALSE) {inRange <- inRange | is.na(data[[nname]])}
+        data <- subset(data, inRange)
       }
       
       # cat("-----------", inpName, nname, rng, length(data[nname]), sep = '\n')
@@ -282,7 +285,7 @@ shinyServer(function(input, output, clientData, session) {
     idx = 0
     for(choice in 1:length(input$display)) {
       mm <- match(input$display[choice],varNames)
-      if(mm > 0) { idx <- c(idx,mm) }
+      if(!is.null(mm) & mm > 0) { idx <- c(idx,mm) }
     }
     print(idx)
     idx
@@ -294,7 +297,7 @@ shinyServer(function(input, output, clientData, session) {
     idx = 0
     for(choice in 1:length(input$display)) {
       mm <- match(input$display[choice],varNames)
-      if(mm > 0) { idx <- c(idx,mm) }
+      if(!is.null(mm) & mm > 0) { idx <- c(idx,mm) }
     }
     print(idx)
     idx

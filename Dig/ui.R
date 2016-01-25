@@ -89,6 +89,9 @@ shinyUI(fluidPage(
         column(3,
           br(),
           wellPanel(
+            h4("Data Processing Options"),
+            checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
+            hr(),
             h4("Render Options"),
             checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
             hr(),

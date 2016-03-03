@@ -84,6 +84,19 @@ shinyUI(fluidPage(
         )
       )
     ),
+    tabPanel("Ranges",
+      wellPanel(
+        fluidRow(
+          # br(), actionButton("updateRanges", "Update Ranges"), downloadButton('exportRanges', 'Download Ranges'), br(), br()
+          br(), actionButton("updateRanges", "Update Ranges"), br(), br()
+        ),
+        fluidRow(
+          column(12,
+                 verbatimTextOutput("ranges")
+          )
+        )
+      )
+    ),
     tabPanel("Options",
       fluidRow(
         column(3,

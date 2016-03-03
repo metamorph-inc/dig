@@ -227,6 +227,23 @@ shinyServer(function(input, output, clientData, session) {
     print("Data Colored")
     data
   })
+  
+  rangesData <- reactive({
+    # for(column in 1:length(varNames)) {
+    #   inpName=paste("inp",toString(column),sep="")
+    #   nname = varNames[column]
+    #   rng = input[[inpName]]
+    #   if(length(rng) != 0) {
+    #     if((varClass[column]=="numeric" | varClass[column]=="integer")) {
+    #       # print(paste("Filtering between", rng[1], "and", rng[2]))
+    #       data <- data[data[nname] >= rng[1],]
+    #       data <- data[data[nname] <= rng[2],]
+    #     }
+    #   }
+    # }
+    maxes <- apply(isolate(filterData()), 2, function(x) max(x, na.rm = TRUE))
+    print(paste(maxes))
+  })
 
   # Pairs Tab ----------------------------------------------------------------
   output$pairsPlot <- renderPlot({
@@ -305,6 +322,11 @@ shinyServer(function(input, output, clientData, session) {
     content = function(file) { write.csv(filterData(), file) }
   )
   
+  output$exportRanges <- downloadHandler(
+    filename = function() { paste('ranges-', Sys.Date(), '.csv', sep='') },
+    content = function(file) { write.csv(rangesData(), file) }
+  )
+  
   output$exportPlot <- downloadHandler(
     filename = function() { paste('plot-', Sys.Date(), '.pdf', sep='') },
     content = function(file) {
@@ -330,6 +352,15 @@ shinyServer(function(input, output, clientData, session) {
   output$table <- renderDataTable({
     input$updateDataTable
     data <- isolate(filterData())
+  })
+  
+  # Ranges Table Tab --------------------------------------------------------------------------------
+  output$ranges <- renderPrint({
+    input$updateRanges
+    # summary(filterData())
+    rangeText <- summary(isolate(filterData()))
+    # print(rangeText)
+    t(rangeText)
   })
   
   # UI Adjustments -----------------------------------------------------------

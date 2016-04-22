@@ -52,7 +52,7 @@ shinyServer(function(input, output, clientData, session) {
   print(paste(rawAbsMax))
   print(paste(rawAbsMin))
 
-  varRangeNum <- varNum[rawAbsMin != rawAbsMax]
+  varRangeNum <- varNum[(rawAbsMin != rawAbsMax) & (rawAbsMin != Inf)]
   print(paste("varRangeNum:"))
   print(paste(varRangeNum))
   

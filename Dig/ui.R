@@ -25,9 +25,9 @@ shinyUI(fluidPage(
             checkboxInput("color", "Color Data", value = FALSE),
             conditionalPanel(
               condition = "input.color == true",
-              # selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
-              # conditionalPanel(
-                # condition = "input.colType == 'Max/Min'",
+               selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
+               conditionalPanel(
+                condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
                 radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min")),
                 sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
@@ -36,6 +36,7 @@ shinyUI(fluidPage(
               #   condition = "input.colType == 'Discrete'",
               #   selectInput("colVarFactor")
               # )
+               )
             ), hr(),
             h4("Info"), #br(),
             verbatimTextOutput("stats"),
@@ -118,7 +119,11 @@ shinyUI(fluidPage(
   uiOutput("enums"),
   uiOutput("sliders"),
   h3("Constants:"),
-  uiOutput("constants")
+  uiOutput("constants"),
+  #Save user presets
+  br(), actionButton("preset", "Save Workspace"), br(), br(),
+  #Loading in user presets
+  fileInput('presetfile', 'Load Workspace', accept = '.csv')
   
   
 )

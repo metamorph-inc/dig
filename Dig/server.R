@@ -99,6 +99,7 @@ shinyServer(function(input, output, clientData, session) {
         }
         else {
           if(current == 'colSlider'){
+            print("Updated colslider from csv")
             updateSliderInput(
               session,
               current,
@@ -106,7 +107,7 @@ shinyServer(function(input, output, clientData, session) {
             )
           }
           else {
-            if (current == 'color'){
+            if (current == 'color' | current == 'autoRender' | current == 'removeMissing'){
               trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
               updateCheckboxInput(
                 session,
@@ -159,19 +160,28 @@ shinyServer(function(input, output, clientData, session) {
         if (min != max) {
           newpreset <- c(newitem, toString(input[[newitem]]))  
           presets <- cbind(presets, newpreset)
-          
         }
       }
     }
-    # Saving plot options
-    dispVars <- c('display', toString(input$display))
-    colorVars <- c('color', input$color)
-    colorVarNum <- c('colVarNum', input$colVarNum)
-    varMinMax <- c('radio', input$radio)
-    colRange <- c('colSlider', toString(input$colSlider))
     
-    presets <- cbind(presets, dispVars, colorVars, colorVarNum, varMinMax, colRange)
+    # Saving plot options
+    display <- c('display', toString(input$display))
+    color <- c('color', input$color)
+    colVarNum <- c('colVarNum', input$colVarNum)
+    varMinMax <- c('radio', input$radio)
+    colSlider <- c('colSlider', toString(input$colSlider))
+    xInput <- c('xInput', input$xInput)
+    yInput <- c('yInput', input$yInput)
+    removeMissing <- c('removeMissing', input$removeMissing)
+    autoRender <- c('autoRender', input$autoRender)
+    pointStyle <- c('pointStyle', input$pointStyle)
+    pointSize <- c('pointSize', input$pointSize)
+    
+    presets <- cbind(presets, display, color, colVarNum, varMinMax, 
+                     colSlider, xInput, yInput, removeMissing, autoRender,
+                     pointStyle, pointSize)
     presets
+    
   })
   
   #Call when user saves data
@@ -404,13 +414,53 @@ shinyServer(function(input, output, clientData, session) {
           data$color[data[[name]] < bottom] <- "green"
           data$color[data[[name]] > top] <- "red"
         }
-       } #else {
-      #   # Coloring of factors is currently unsupported!
-      #   # data$color[data[[paste(input$colVarFactor)]] %in% input$colSelect,]
-      # }
+       } 
+       else {
+         # Coloring of factors is currently unsupported!
+         # data$color[data[[paste(input$colVarFactor)]] %in% input$colSelect,]
+         updateSelectInput(
+           session,
+           'colVarFactor',
+           choices = varFac
+         )
+         # name <- isolate(input$colVarNum)
+         # bottom <- slider[1]
+         # top <- slider[2]
+         # print(paste("Coloring Data:", name, bottom, top))
+         # data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
+         # if (input$radioF == "max") {
+         #   data$color[data[[name]] < bottom] <- "red"
+         #   data$color[data[[name]] > top] <- "green"
+         # } else {
+         #   data$color[data[[name]] < bottom] <- "green"
+         #   data$color[data[[name]] > top] <- "red"
+         # }
+       }
     }
     print("Data Colored")
     data
+  })
+  
+  observeEvent(input$colVarFactor, {
+    if(input$colVarFactor != ""){
+      listSize <- length(names(table(raw[input$colVarFactor])))
+      rawLabel <- ""
+      if(listSize > 1){
+        for(i in 1:listSize){
+          rawLabel <- paste0(rawLabel, i, ":", 
+                            names(table(raw[input$colVarFactor]))[i], " ")
+        }
+        
+        updateSliderInput(
+          session,
+          'colFSlider',
+          rawLabel,
+          min = 1,
+          max = listSize,
+          value = c(1, listSize)
+        )
+      }
+    }
   })
 
   # Pairs Tab ----------------------------------------------------------------
@@ -434,6 +484,10 @@ shinyServer(function(input, output, clientData, session) {
       pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
     # }
     print("Plot Rendered.")
+  })
+  
+  output$pairs_info <- renderPrint({
+    nearPoints(data, input$dblclick)
   })
   
   varsList <- reactive({
@@ -536,13 +590,30 @@ shinyServer(function(input, output, clientData, session) {
     if(varClass[[input$colVarNum]] == "numeric") {
       # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
-      updateSliderInput(session,
-                        "colSlider",
-                        step = signif(absStep, digits = 4),
-                        min = signif(absMin-absStep*10, digits = 4),
-                        max = signif(absMax+absStep*10, digits = 4),
-                        value = c(unname(thirtythree), unname(sixtysix))
-      )
+      if(is.null(filedata())){
+        updateSliderInput(session,
+                          "colSlider",
+                          step = signif(absStep, digits = 4),
+                          min = signif(absMin-absStep*10, digits = 4),
+                          max = signif(absMax+absStep*10, digits = 4),
+                          value = c(unname(thirtythree), unname(sixtysix))
+        )
+      }
+      else {
+        print("Updated colslider from csv")
+        sliderValue <- as.numeric(unlist(strsplit(toString(filedata()['colSlider']), ", ")))
+        if (input$colVarNum != gsub("^\\s+|\\s+$", "",  filedata()$colVarNum)){
+          sliderValue <- c(unname(thirtythree), unname(sixtysix))
+        }
+        updateSliderInput(
+          session,
+          "colSlider",
+          step = signif(absStep, digits = 4),
+          min = signif(absMin-absStep*10, digits = 4),
+          max = signif(absMax+absStep*10, digits = 4),
+          value = sliderValue
+        )
+      }
     }
     if(varClass[[input$colVarNum]] == "integer") {
       # print("In updated slider: integer")
@@ -554,6 +625,16 @@ shinyServer(function(input, output, clientData, session) {
                         value = c(floor(thirtythree), ceiling(sixtysix))
       )
     }
+  }
+  
+  updateColorFSlider <- function() {
+    data <- isolate(filterData())
+    min <- min(data[[paste(input$colVarFac)]], na.rm=TRUE)
+    max <- max(data[[paste(input$colVarFac)]], na.rm=TRUE)
+    print(paste("colFSlider:", isolate(input$colFSlider[1]), isolate(input$colFSlider[2])))
+    print(paste("In updateColorSlider(). colVarFac:", input$colVarFac, min, max))
+    thirtythree <- quantile(data[[paste(input$colVarFac)]], 0.33, na.rm=TRUE)
+    sixtysix <- quantile(data[[paste(input$colVarFac)]], 0.66, na.rm=TRUE)
   }
 
   updateXSlider <- observeEvent(input$updateX, {
@@ -598,5 +679,10 @@ shinyServer(function(input, output, clientData, session) {
     if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {
       updateColorSlider()
     }
+    # else {
+    #   if (!is.null(isolate(colorData())) & !(as.character(input[["colVarFac"]]) == "")) {
+    #     updateColorFSlider()
+    #   }
+    # }
   })
 })

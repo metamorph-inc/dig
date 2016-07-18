@@ -22,10 +22,8 @@ shinyUI(fluidPage(
               actionButton("renderPlot", "Render Plot"),
               br()
             ), hr(),
-            checkboxInput("color", "Color Data", value = FALSE),
-            conditionalPanel(
-              condition = "input.color == true",
-              selectInput("colType", "Type:", choices = c("Max/Min", "Discrete"), selected = "Max/Min"),
+              h4("Data Coloring"),
+              selectInput("colType", "Type:", choices = c("None", "Max/Min", "Discrete"), selected = "None"),
               conditionalPanel(
                 condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
@@ -35,16 +33,17 @@ shinyUI(fluidPage(
               conditionalPanel(
                 condition = "input.colType == 'Discrete'",
                 selectInput("colVarFactor", "Colored Factor:", c()),
-                conditionalPanel(
-                  condition = "input.colVarFactor == 'designVariable.ResinName' 
-                             | input.colVarFactor == 'designVariable.IEC_WindClass' 
-                             | input.colVarFactor == 'designVariable.FabricName'",
-                  radioButtons("radioF", NULL, c("Maximize" = "max", "Minimize" = "min"), selected = "max"), br(),
-                  sliderInput("colFSlider", label = "", min = 0, max = 1, value = c(0,1), step = 1)
-                )
+                htmlOutput("colorLegend")
+                # conditionalPanel(
+                #   condition = "input.colVarFactor == 'designVariable.ResinName' 
+                #              | input.colVarFactor == 'designVariable.IEC_WindClass' 
+                #              | input.colVarFactor == 'designVariable.FabricName'",
+                #   radioButtons("radioF", NULL, c("Maximize" = "max", "Minimize" = "min"), selected = "max"), br(),
+                #   sliderInput("colFSlider", label = "", min = 0, max = 1, value = c(0,1), step = 1)
+                # )
               )
               
-            ),  hr(),
+            ,  hr(),
             h4("Info"), #br(),
             verbatimTextOutput("stats"),
             actionButton("updateStats", "Update"), br(), hr(),

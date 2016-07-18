@@ -107,7 +107,7 @@ shinyServer(function(input, output, clientData, session) {
             )
           }
           else {
-            if (current == 'color' | current == 'autoRender' | current == 'removeMissing'){
+            if (current == 'autoRender' | current == 'removeMissing'){
               trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
               updateCheckboxInput(
                 session,
@@ -166,8 +166,9 @@ shinyServer(function(input, output, clientData, session) {
     
     # Saving plot options
     display <- c('display', toString(input$display))
-    color <- c('color', input$color)
+    color <- c('colType', input$colType)
     colVarNum <- c('colVarNum', input$colVarNum)
+    colVarFac <- c('colVarFactor', input$colVarFactor)
     varMinMax <- c('radio', input$radio)
     colSlider <- c('colSlider', toString(input$colSlider))
     xInput <- c('xInput', input$xInput)
@@ -177,7 +178,7 @@ shinyServer(function(input, output, clientData, session) {
     pointStyle <- c('pointStyle', input$pointStyle)
     pointSize <- c('pointSize', input$pointSize)
     
-    presets <- cbind(presets, display, color, colVarNum, varMinMax, 
+    presets <- cbind(presets, display, color, colVarNum, colVarFac, varMinMax, 
                      colSlider, xInput, yInput, removeMissing, autoRender,
                      pointStyle, pointSize)
     presets
@@ -247,6 +248,12 @@ shinyServer(function(input, output, clientData, session) {
   # })
   
   print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
+  
+  updateSelectInput(
+    session,
+    "colVarFactor",
+    choices = varFac
+  )
   
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
@@ -400,68 +407,49 @@ shinyServer(function(input, output, clientData, session) {
     data <- filterData()
     data$color <- character(nrow(data))
     data$color <- "black"
-    if (input$color == TRUE) {
-       if (input$colType == "Max/Min") {
-        name <- isolate(input$colVarNum)
-        bottom <- slider[1]
-        top <- slider[2]
-        print(paste("Coloring Data:", name, bottom, top))
-        data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
-        if (input$radio == "max") {
-          data$color[data[[name]] < bottom] <- "red"
-          data$color[data[[name]] > top] <- "green"
-        } else {
-          data$color[data[[name]] < bottom] <- "green"
-          data$color[data[[name]] > top] <- "red"
-        }
-       } 
-       else {
-         # Coloring of factors is currently unsupported!
-         # data$color[data[[paste(input$colVarFactor)]] %in% input$colSelect,]
-         updateSelectInput(
-           session,
-           'colVarFactor',
-           choices = varFac
-         )
-         # name <- isolate(input$colVarNum)
-         # bottom <- slider[1]
-         # top <- slider[2]
-         # print(paste("Coloring Data:", name, bottom, top))
-         # data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
-         # if (input$radioF == "max") {
-         #   data$color[data[[name]] < bottom] <- "red"
-         #   data$color[data[[name]] > top] <- "green"
-         # } else {
-         #   data$color[data[[name]] < bottom] <- "green"
-         #   data$color[data[[name]] > top] <- "red"
-         # }
+     if (input$colType == "Max/Min") {
+      name <- isolate(input$colVarNum)
+      bottom <- slider[1]
+      top <- slider[2]
+      print(paste("Coloring Data:", name, bottom, top))
+      data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
+      if (input$radio == "max") {
+        data$color[data[[name]] < bottom] <- "red"
+        data$color[data[[name]] > top] <- "green"
+      } else {
+        data$color[data[[name]] < bottom] <- "green"
+        data$color[data[[name]] > top] <- "red"
+      }
+     } 
+     else {
+       if (input$colType == "Discrete") {
+         varList = names(table(raw[input$colVarFactor]))
+         colorList = c("blue", "green", "red", "purple", "brown")
+         for(i in 1:length(varList)){
+           data$color[(data[[input$colVarFactor]] == varList[i])] <- colorList[i]
+         }
        }
-    }
+     }
     print("Data Colored")
     data
   })
-  
-  observeEvent(input$colVarFactor, {
-    if(input$colVarFactor != ""){
-      listSize <- length(names(table(raw[input$colVarFactor])))
-      rawLabel <- ""
-      if(listSize > 1){
-        for(i in 1:listSize){
-          rawLabel <- paste0(rawLabel, i, ":", 
-                            names(table(raw[input$colVarFactor]))[i], " ")
-        }
-        
-        updateSliderInput(
-          session,
-          'colFSlider',
-          rawLabel,
-          min = 1,
-          max = listSize,
-          value = c(1, listSize)
-        )
-      }
+
+  output$colorLegend <- renderUI({
+    listSize <- length(names(table(raw[input$colVarFactor])))
+    rawLabel <- ""
+    fontColor <- c("<font color=blue><b>",
+                   "<font color=green><b>",
+                   "<font color=red><b>",
+                   "<font color=purple><b>",
+                   "<font color=brown><b>")
+    for(i in 1:listSize){
+      rawLabel <- HTML(paste0(rawLabel, fontColor[i], "&#9632", " ",
+                         names(table(raw[input$colVarFactor]))[i], '<br/>'))
     }
+    rawLabel
   })
+  
+
 
   # Pairs Tab ----------------------------------------------------------------
   output$pairsPlot <- renderPlot({
@@ -523,7 +511,7 @@ shinyServer(function(input, output, clientData, session) {
 
   infoTable <- eventReactive(input$updateStats, {
     tb <- table(factor(colorData()$color, c("green", "yellow", "red", "black")))
-    if (input$color) { # & input$colType == 'Max/Min') {
+    if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", sum(tb[["green"]], tb[["yellow"]], tb[["red"]], tb[["black"]]),

@@ -32,7 +32,7 @@ shinyUI(fluidPage(
               ),
               conditionalPanel(
                 condition = "input.colType == 'Discrete'",
-                selectInput("colVarFactor", "Colored Factor:", c()),
+                selectInput("colVarFactor", "Colored Variable:", c()),
                 htmlOutput("colorLegend")
                 # conditionalPanel(
                 #   condition = "input.colVarFactor == 'designVariable.ResinName' 
@@ -55,7 +55,7 @@ shinyUI(fluidPage(
           )
         ),
         column(9,
-          plotOutput("pairsPlot", height=700)
+          plotOutput("pairsPlot", click = "pairs_click", height=700)
         )
       )
     ),

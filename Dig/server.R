@@ -5,7 +5,7 @@ library(shiny)
 #options(shiny.error = function() traceback(2))
 
 palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
-          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
+         "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
 #Use project folder for saved presets
 outputDir <- "."
@@ -128,7 +128,6 @@ shinyServer(function(input, output, clientData, session) {
         }
       }
     }
-    
   })
   
   #Save all fields to csv
@@ -143,7 +142,7 @@ shinyServer(function(input, output, clientData, session) {
         presets <- cbind(presets, newpreset)
       }
       
-      if(varClass[column] == "numeric") {
+      if (varClass[column] == "numeric") {
         max <- as.numeric(unname(rawAbsMax[varNames[column]]))
         min <- as.numeric(unname(rawAbsMin[varNames[column]]))
         diff <- (max-min)
@@ -293,7 +292,6 @@ shinyServer(function(input, output, clientData, session) {
                           max = signif(max+step*10, digits = 4),
                           value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
             )
-            
           }
         } else {
           if (varClass[column] == "integer") {
@@ -313,7 +311,6 @@ shinyServer(function(input, output, clientData, session) {
       })
     )
   })
-  
   
   output$constants <- renderUI({
     fluidRow(
@@ -398,8 +395,6 @@ shinyServer(function(input, output, clientData, session) {
     print("Data Filtered")
     data
   })
-  
-  
 
   colorData <- reactive({
     print("In colorData()")
@@ -424,9 +419,8 @@ shinyServer(function(input, output, clientData, session) {
      else {
        if (input$colType == "Discrete") {
          varList = names(table(raw[input$colVarFactor]))
-         colorList = c("blue", "green", "red", "purple", "brown")
          for(i in 1:length(varList)){
-           data$color[(data[[input$colVarFactor]] == varList[i])] <- colorList[i]
+           data$color[(data[[input$colVarFactor]] == varList[i])] <- palette()[i]
          }
        }
      }
@@ -437,22 +431,16 @@ shinyServer(function(input, output, clientData, session) {
   output$colorLegend <- renderUI({
     listSize <- length(names(table(raw[input$colVarFactor])))
     rawLabel <- ""
-    fontColor <- c("<font color=blue><b>",
-                   "<font color=green><b>",
-                   "<font color=red><b>",
-                   "<font color=purple><b>",
-                   "<font color=brown><b>")
     for(i in 1:listSize){
-      rawLabel <- HTML(paste0(rawLabel, fontColor[i], "&#9632", " ",
+      rawLabel <- HTML(paste(rawLabel, "<font color=", palette()[i], "<b>", "&#9632", " ",
                          names(table(raw[input$colVarFactor]))[i], '<br/>'))
     }
     rawLabel
   })
-  
-
 
   # Pairs Tab ----------------------------------------------------------------
   output$pairsPlot <- renderPlot({
+    validate(need(length(input$display)>=2, "Please select two or more display variables."))
     if (input$autoRender == TRUE) {
       vars <- varsList()
       data <- colorData()
@@ -460,7 +448,6 @@ shinyServer(function(input, output, clientData, session) {
       vars <- slowVarsList()
       data <- slowData()
     }
-    validate(need(length(vars)>=2, "Please select two or more display variables."))
     
     print("Rendering Plot.")
     # if(input$colType == 'Discrete') {
@@ -469,13 +456,19 @@ shinyServer(function(input, output, clientData, session) {
     #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
     # } else {
       # print(as.numeric(input$pointStyle))
-      pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+        pairs(data[vars],
+             lower.panel = panel.smooth,
+             upper.panel=NULL, 
+             col=data$color, 
+             pch = as.numeric(input$pointStyle), 
+             cex = as.numeric(input$pointSize))
     # }
     print("Plot Rendered.")
   })
   
+  
   output$pairs_info <- renderPrint({
-    nearPoints(data, input$dblclick)
+    t(nearPoints(data, input$pairs_click))
   })
   
   varsList <- reactive({

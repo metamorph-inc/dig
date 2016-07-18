@@ -375,13 +375,13 @@ shinyServer(function(input, output, clientData, session) {
       # print(paste("column: ", column, "Checking", nname, "rng", rng[1], "(", rawAbsMin[column], ",", rawAbsMax[column], ")", rng[2]))
       if(length(rng) != 0) {
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          # print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
+          print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
           inRange <- above & below
         } else {
           if (varClass[column]=="factor") {
-            # print(paste(varNames[column],class(rng)))
+            print(paste(varNames[column],class(rng)))
             # print(paste(rng))
             inRange <- (data[[nname]] %in% rng)
           }
@@ -400,6 +400,7 @@ shinyServer(function(input, output, clientData, session) {
     print("In colorData()")
     slider <- input$colSlider
     data <- filterData()
+    validate(need(nrow(data) > 0, "No data points fit the current filtering scheme"))
     data$color <- character(nrow(data))
     data$color <- "black"
      if (input$colType == "Max/Min") {

@@ -1,4 +1,5 @@
 library(shiny)
+library(GGally)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -248,11 +249,14 @@ shinyServer(function(input, output, clientData, session) {
   
   print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
   
+  
+  #Initializing -------------------------------------------------------
   updateSelectInput(
     session,
     "colVarFactor",
     choices = varFac
   )
+  
   
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
@@ -298,8 +302,8 @@ shinyServer(function(input, output, clientData, session) {
             max <- as.integer(unname(rawAbsMax[varNames[column]]))
             min <- as.integer(unname(rawAbsMin[varNames[column]]))
             if (min != max) {
-              column(2,
-                sliderInput(paste0('inp', column),
+              column(2, 
+                     sliderInput(paste0('inp', column),
                             varNames[column],
                             min = min,
                             max = max,
@@ -400,7 +404,7 @@ shinyServer(function(input, output, clientData, session) {
     print("In colorData()")
     slider <- input$colSlider
     data <- filterData()
-    validate(need(nrow(data) > 0, "No data points fit the current filtering scheme"))
+    #validate(need(nrow(data) > 0, "No data points fit the current filtering scheme"))
     data$color <- character(nrow(data))
     data$color <- "black"
      if (input$colType == "Max/Min") {
@@ -441,36 +445,53 @@ shinyServer(function(input, output, clientData, session) {
 
   # Pairs Tab ----------------------------------------------------------------
   output$pairsPlot <- renderPlot({
-    validate(need(length(input$display)>=2, "Please select two or more display variables."))
-    if (input$autoRender == TRUE) {
-      vars <- varsList()
-      data <- colorData()
-    } else {
-      vars <- slowVarsList()
-      data <- slowData()
+    output$displayVars <- renderText("")
+    output$filterVars <- renderText("")
+    if (length(input$display) >= 2 & nrow(filterData()) > 0) {
+      #validate(need(length(input$display)>=2, "Please select two or more display variables."))
+      if (input$autoRender == TRUE) {
+        vars <- varsList()
+        data <- colorData()
+      } else {
+        vars <- slowVarsList()
+        data <- slowData()
+      }
+      
+      print("Rendering Plot.")
+      # if(input$colType == 'Discrete') {
+      #   print("Printing 'Discrete' plot.")
+      #   pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle))
+      #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
+      # } else {
+        # print(as.numeric(input$pointStyle))
+          pairs(data[vars],
+               lower.panel = panel.smooth,
+               upper.panel=NULL, 
+               col = data$color,
+               pch = as.numeric(input$pointStyle), 
+               cex = as.numeric(input$pointSize))
+      # }
+      print("Plot Rendered.")
     }
-    
-    print("Rendering Plot.")
-    # if(input$colType == 'Discrete') {
-    #   print("Printing 'Discrete' plot.")
-    #   pairs(data[vars],lower.panel = panel.smooth,upper.panel=NULL, col=data$color, pch = as.numeric(input$pointStyle))
-    #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
-    # } else {
-      # print(as.numeric(input$pointStyle))
-        pairs(data[vars],
-             lower.panel = panel.smooth,
-             upper.panel=NULL, 
-             col=data$color, 
-             pch = as.numeric(input$pointStyle), 
-             cex = as.numeric(input$pointSize))
-    # }
-    print("Plot Rendered.")
+    else {
+      if (nrow(filterData()) == 0) {
+        output$filterVars <- renderText("No data points fit the current filtering scheme")
+      }
+      if (length(input$display) < 2) {
+        output$displayVars <- renderText("Please select two or more display variables.")
+      }
+    }
   })
   
   
   output$pairs_info <- renderPrint({
-    t(nearPoints(data, input$pairs_click))
+    t(brushedPoints(colorData(), input$pairs_brush, 
+                 xvar = input$display[1],
+                 yvar = input$display[2],
+                 "1", "2", allRows = TRUE
+                 ))
   })
+  
   
   varsList <- reactive({
     print("Getting Variable List.")
@@ -544,7 +565,11 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   output$info <- renderPrint({
-    t(nearPoints(filterData(), input$plot_click, xvar = input$xInput, yvar = input$yInput, maxpoints = 8))
+    t(nearPoints(filterData(), 
+                 input$plot_click, 
+                 xvar = input$xInput, 
+                 yvar = input$yInput, 
+                 maxpoints = 8))
   })
 
   # Data Table Tab --------------------------------------------------------------------------------

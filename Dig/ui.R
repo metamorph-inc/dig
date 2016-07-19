@@ -55,7 +55,12 @@ shinyUI(fluidPage(
           )
         ),
         column(9,
-          plotOutput("pairsPlot", click = "pairs_click", height=700)
+          h2(textOutput("filterVars"), align = "center"),
+          h2(textOutput("displayVars"), align = "center"),
+          plotOutput("pairsPlot", click = "pairs_click", brush = "pairs_brush", height=700)
+        ),
+        column(12,
+          verbatimTextOutput("pairs_info")
         )
       )
     ),

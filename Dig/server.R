@@ -8,28 +8,6 @@ library(GGally)
 palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
-#Use project folder for saved presets
-outputDir <- "."
-#Items to be saved for user presets
-
-#Function for saving user presets
-saveData <- function(data) {
-  #data <- t(data)
-  # Create unique filename
-  fileName <- sprintf("%s_%s.csv", 
-                      as.integer(Sys.time()), 
-                      digest::digest(data))
-  # Write file to local system
-  write.table(
-    x = data,
-    file = file.path(outputDir, fileName),
-    row.names = FALSE, 
-    col.names = FALSE,
-    sep = ", ",
-    quote = TRUE
-  )
-}
-
 shinyServer(function(input, output, clientData, session) {
   # Get Data -----------------------------------------------------------------
   raw <- c()
@@ -49,16 +27,6 @@ shinyServer(function(input, output, clientData, session) {
     # raw = read.csv("../data.csv", fill=T)
     raw = read.csv("../../results/mergedPET.csv", fill=T)
   }
-
-
-  #Variable for loading in user preset
-  # filedata <- reactive({
-  #   infile <- input$presetfile
-  #   if(is.null(infile)) {
-  #     return(NULL)
-  #   }
-  #   read.csv(infile$datapath, header = TRUE, stringsAsFactors = FALSE)
-  # })
   
   filedata <- eventReactive(
     input$importSession, {
@@ -71,58 +39,16 @@ shinyServer(function(input, output, clientData, session) {
     
     if(!is.null(filedata())){
       #updateSelectInput(session, "display", selected = varRange[c(1,2)])
-
-      for(i in 1:length(colnames(filedata()))){
-        
-        current <- colnames(filedata())[i]
-        column <- as.numeric(gsub("[^0-9]", "", current)) #Extract number
-        
-        if(!is.null(filedata()[current]) & !is.na(column)){
-          if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
-            parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
-            trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-            updateSelectInput(
-              session,
-              current,
-              selected = trimmedValue
-            )
-          }
-          else {
-            if(varClass[column] == "numeric") {
-              updateSliderInput(
-                session,
-                current,
-                value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-              )
-            }
-            if (varClass[column] == "integer") {
-              updateSliderInput(
-                session,
-                current,
-                value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-              )
-            }
-          }
-        }
-        else {
-          if(current == 'colSlider'){
-            print("Updated colslider from csv")
-            updateSliderInput(
-              session,
-              current,
-              value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-            )
-          }
-          else {
-            if (current == 'autoRender' | current == 'removeMissing'){
-              trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
-              updateCheckboxInput(
-                session,
-                current,
-                value = as.logical(trimmedValue)
-              )
-            }
-            else {
+      withProgress(message = 'Uploading Session File', {
+        for(i in 1:length(colnames(filedata()))){
+          
+          incProgress(1/length(colnames(filedata())))
+          
+          current <- colnames(filedata())[i]
+          column <- as.numeric(gsub("[^0-9]", "", current)) #Extract number
+          
+          if(!is.null(filedata()[current]) & !is.na(column)){
+            if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
               parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
               trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
               updateSelectInput(
@@ -131,9 +57,54 @@ shinyServer(function(input, output, clientData, session) {
                 selected = trimmedValue
               )
             }
+            else {
+              if(varClass[column] == "numeric") {
+                updateSliderInput(
+                  session,
+                  current,
+                  value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
+                )
+              }
+              if (varClass[column] == "integer") {
+                updateSliderInput(
+                  session,
+                  current,
+                  value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
+                )
+              }
+            }
+          }
+          else {
+            if(current == 'colSlider'){
+              print("Updated colslider from csv")
+              updateSliderInput(
+                session,
+                current,
+                value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
+              )
+            }
+            else {
+              if (current == 'autoRender' | current == 'removeMissing'){
+                trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
+                updateCheckboxInput(
+                  session,
+                  current,
+                  value = as.logical(trimmedValue)
+                )
+              }
+              else {
+                parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+                updateSelectInput(
+                  session,
+                  current,
+                  selected = trimmedValue
+                )
+              }
+            }
           }
         }
-      }
+      })
     }
   })
   

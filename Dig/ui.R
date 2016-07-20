@@ -55,13 +55,15 @@ shinyUI(fluidPage(
           )
         ),
         column(9,
-          h2(textOutput("filterVars"), align = "center"),
-          h2(textOutput("displayVars"), align = "center"),
-          plotOutput("pairsPlot", click = "pairs_click", brush = "pairs_brush", height=700)
-        ),
-        column(12,
-          verbatimTextOutput("pairs_info")
+            uiOutput("displayError"),   
+            uiOutput("filterError"),
+            uiOutput("pairsDisplay")
+          
+          #h4(textOutput("filterVars"), align = "center")
         )
+        # column(6,
+        #   verbatimTextOutput("pairs_info")
+        # )
       )
     ),
     tabPanel("Single Plot",

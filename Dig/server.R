@@ -256,8 +256,7 @@ shinyServer(function(input, output, clientData, session) {
     "colVarFactor",
     choices = varFac
   )
-  
-  
+
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
     fluidRow(
@@ -444,19 +443,33 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   # Pairs Tab ----------------------------------------------------------------
+  
+  pairs_data <- reactive({
+    if (input$autoRender == TRUE) {
+      data <- colorData()
+    } else {
+      data <- slowData()
+    }
+    
+    data
+  })
+  
+  pairs_vars <- reactive({
+    if (input$autoRender == TRUE) {
+      vars <- varsList()
+    } else {
+      vars <- slowVarsList()
+    }
+    
+    vars
+  })
+  
   output$pairsPlot <- renderPlot({
+    
     output$displayVars <- renderText("")
     output$filterVars <- renderText("")
+    
     if (length(input$display) >= 2 & nrow(filterData()) > 0) {
-      #validate(need(length(input$display)>=2, "Please select two or more display variables."))
-      if (input$autoRender == TRUE) {
-        vars <- varsList()
-        data <- colorData()
-      } else {
-        vars <- slowVarsList()
-        data <- slowData()
-      }
-      
       print("Rendering Plot.")
       # if(input$colType == 'Discrete') {
       #   print("Printing 'Discrete' plot.")
@@ -464,10 +477,10 @@ shinyServer(function(input, output, clientData, session) {
       #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
       # } else {
         # print(as.numeric(input$pointStyle))
-          pairs(data[vars],
+          pairs(pairs_data()[pairs_vars()],
                lower.panel = panel.smooth,
                upper.panel=NULL, 
-               col = data$color,
+               col = pairs_data()$color,
                pch = as.numeric(input$pointStyle), 
                cex = as.numeric(input$pointSize))
       # }
@@ -475,22 +488,35 @@ shinyServer(function(input, output, clientData, session) {
     }
     else {
       if (nrow(filterData()) == 0) {
-        output$filterVars <- renderText("No data points fit the current filtering scheme")
+        output$filterVars <- 
+          renderText(
+            "No data points fit the current filtering scheme")
       }
       if (length(input$display) < 2) {
-        output$displayVars <- renderText("Please select two or more display variables.")
+        output$displayVars <- 
+          renderText(
+            "Please select two or more display variables.")
       }
     }
   })
   
-  
-  output$pairs_info <- renderPrint({
-    t(brushedPoints(colorData(), input$pairs_brush, 
-                 xvar = input$display[1],
-                 yvar = input$display[2],
-                 "1", "2", allRows = TRUE
-                 ))
+  output$pairsDisplay <- renderUI({
+    plotOutput("pairsPlot", click = "pairs_click", brush = "pairs_brush", height=700)
   })
+  
+  output$filterError <- renderUI({
+    h4(textOutput("filterVars"), align = "center")
+  })
+  
+  output$displayError <- renderUI({
+    h4(textOutput("displayVars"), align = "center")
+  })
+  
+  # output$pairs_info <- renderPrint({
+  #   t(brushedPoints(pairs_data(), input$pairs_brush,
+  #                   xvar = input$display[1],
+  #                   yvar = input$display[2]))
+  # })
   
   
   varsList <- reactive({

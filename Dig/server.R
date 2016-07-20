@@ -52,12 +52,18 @@ shinyServer(function(input, output, clientData, session) {
 
 
   #Variable for loading in user preset
-  filedata <- reactive({
-    infile <- input$presetfile
-    if(is.null(infile)) {
-      return(NULL)
-    }
-    read.csv(infile$datapath, header = TRUE, stringsAsFactors = FALSE)
+  # filedata <- reactive({
+  #   infile <- input$presetfile
+  #   if(is.null(infile)) {
+  #     return(NULL)
+  #   }
+  #   read.csv(infile$datapath, header = TRUE, stringsAsFactors = FALSE)
+  # })
+  
+  filedata <- eventReactive(
+    input$importSession, {
+      file <- file.choose()
+      read.csv(file, header = TRUE, stringsAsFactors = FALSE)
   })
 
   #Changes values based on user uploaded csv file
@@ -164,7 +170,7 @@ shinyServer(function(input, output, clientData, session) {
       }
     }
     
-    # Saving plot options
+    # Saving additional plot options
     display <- c('display', toString(input$display))
     color <- c('colType', input$colType)
     colVarNum <- c('colVarNum', input$colVarNum)
@@ -186,12 +192,32 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   #Call when user saves data
-  observeEvent(input$preset, {
-    saveData(formData())
-  })
+  output$exportSession <- downloadHandler(
+    filename = function() { 
+      if (input$sessionName == ""){
+        paste0('session_', Sys.Date(), '.csv')
+      }
+      else {
+        paste0(input$sessionName, '.csv')
+      }
+    },
+    content = function(file) { 
+      write.table(
+        x = formData(),
+        file,
+        row.names = FALSE, 
+        col.names = FALSE,
+        sep = ", ",
+        quote = TRUE
+      )
+    }
+  )
   
-  
-  
+  observeEvent(
+    input$exportSession, {
+    print("clicked button dawg")}
+  )
+
   # Pre-processing -----------------------------------------------------------
   # print(str(raw))
   

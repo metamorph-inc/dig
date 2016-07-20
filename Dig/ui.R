@@ -100,28 +100,38 @@ shinyUI(fluidPage(
     ),
     tabPanel("Options",
       fluidRow(
-        column(3,
+        column(6,
           br(),
           wellPanel(
             h4("Data Processing Options"),
             checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
             hr(),
+            
             h4("Render Options"),
             checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
-            hr(),
-            p(strong("Point Options:")),
+            br(),
+            strong("Data Point Style"),
             fluidRow(
-              column(6, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
-              column(6, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))
+              column(4, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
+              column(8, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))
             ),
             hr(),
-            # actionButton("resetSettings", "Reset to Default Settings"),
-            # hr(),
+            
+            h4("Session Options"),
+            strong("Save Session"),
+            textInput("sessionName", NULL, placeholder = "Enter a filename..."),
+            downloadButton("exportSession", "Download"),
+            br(), br(),
+            strong("Load Session"), br(),
+            actionButton('importSession', 'Choose File'),
+            br(), br(), br(),
+            hr(),
+            
             h4("About"),
-            p(strong("Version:"), "v1.1.2"),
-            p(strong("Date:"), "12/29/2015"),
+            p(strong("Version:"), "v1.2.0"),
+            p(strong("Date:"), "7/20/2016"),
             p(strong("Developer:"), "Metamorph Software"),
-            p(strong("Support:"), "tthomas@metamorphsoftware.com")
+            p(strong("Support:"), "wknight@metamorphsoftware.com")
           )
         ),
       column(9))
@@ -132,11 +142,8 @@ shinyUI(fluidPage(
   uiOutput("enums"),
   uiOutput("sliders"),
   h3("Constants:"),
-  uiOutput("constants"),
-  #Save user presets
-  br(), actionButton("preset", "Save Workspace"), br(), br(),
-  #Loading in user presets
-  fileInput('presetfile', 'Load Workspace', accept = '.csv')
+  uiOutput("constants")
+  
   
   
 )

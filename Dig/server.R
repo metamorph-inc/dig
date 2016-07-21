@@ -1,5 +1,4 @@
 library(shiny)
-library(GGally)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -400,6 +399,45 @@ shinyServer(function(input, output, clientData, session) {
     print("In colorData()")
     slider <- input$colSlider
     data <- filterData()
+    #selected <- read.delim(textConnection(unlist(strsplit(info(), "\\n"))), header = FALSE, sep = "")
+    if (!is.null(input$plot_brush)){
+      selected <- unlist(strsplit(info(), "\\n"))
+      brushCols <- NULL
+      brushRows <- NULL
+      for (i in 1:length(selected)){
+        current <- unlist(strsplit(selected[i], "\\s+"))
+        if (is.na(as.numeric(current[1]))){
+          brushCols <- c(brushCols, current[2:length(current)])
+        }
+        else {
+          if(!is.null(brushRows)){
+            if(length(current) < ncol(brushRows)){
+              current[ncol(brushRows)] <- NA
+            }
+          }
+          brushRows <- rbind(brushRows, current)
+        }
+      }
+      
+      idBrush <- unique(brushRows[,1])
+      
+      #Initialize dataframe with column names
+      brushData <- as.data.frame(setNames(replicate(length(brushCols),numeric(0), simplify = F), brushCols))
+      
+      #Create unique vectors for each data point
+      for(i in 1:length(idBrush)){
+        newVector <- NULL
+        for(j in 1:dim(brushRows)[1]){
+          if(brushRows[j] == idBrush[i]){
+            newElements <- brushRows[j,2:dim(brushRows)[2]]
+            newVector <- c(newVector, newElements[!is.na(newElements)])
+          }
+        }
+        brushData[nrow(brushData)+1,] <- newVector
+      }
+
+    }
+    
     #validate(need(nrow(data) > 0, "No data points fit the current filtering scheme"))
     data$color <- character(nrow(data))
     data$color <- "black"
@@ -422,6 +460,11 @@ shinyServer(function(input, output, clientData, session) {
          varList = names(table(raw[input$colVarFactor]))
          for(i in 1:length(varList)){
            data$color[(data[[input$colVarFactor]] == varList[i])] <- palette()[i]
+         }
+       }
+       else {
+         if (input$colType == "Highlighted") {
+           print("Nah b")
          }
        }
      }
@@ -587,12 +630,11 @@ shinyServer(function(input, output, clientData, session) {
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
 
-  output$info <- renderPrint({
-    t(nearPoints(filterData(), 
-                 input$plot_click, 
-                 xvar = input$xInput, 
-                 yvar = input$yInput, 
-                 maxpoints = 8))
+  info <- renderPrint({
+    brushedPoints(filterData(), 
+                 input$plot_brush,
+                 xvar = input$xInput,
+                 yvar = input$yInput)
   })
 
   # Data Table Tab --------------------------------------------------------------------------------
@@ -656,16 +698,6 @@ shinyServer(function(input, output, clientData, session) {
       )
     }
   }
-  
-  updateColorFSlider <- function() {
-    data <- isolate(filterData())
-    min <- min(data[[paste(input$colVarFac)]], na.rm=TRUE)
-    max <- max(data[[paste(input$colVarFac)]], na.rm=TRUE)
-    print(paste("colFSlider:", isolate(input$colFSlider[1]), isolate(input$colFSlider[2])))
-    print(paste("In updateColorSlider(). colVarFac:", input$colVarFac, min, max))
-    thirtythree <- quantile(data[[paste(input$colVarFac)]], 0.33, na.rm=TRUE)
-    sixtysix <- quantile(data[[paste(input$colVarFac)]], 0.66, na.rm=TRUE)
-  }
 
   updateXSlider <- observeEvent(input$updateX, {
     updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
@@ -709,10 +741,5 @@ shinyServer(function(input, output, clientData, session) {
     if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {
       updateColorSlider()
     }
-    # else {
-    #   if (!is.null(isolate(colorData())) & !(as.character(input[["colVarFac"]]) == "")) {
-    #     updateColorFSlider()
-    #   }
-    # }
   })
 })

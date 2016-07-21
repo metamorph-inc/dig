@@ -23,7 +23,7 @@ shinyUI(fluidPage(
               br()
             ), hr(),
               h4("Data Coloring"),
-              selectInput("colType", "Type:", choices = c("None", "Max/Min", "Discrete"), selected = "None"),
+              selectInput("colType", "Type:", choices = c("None", "Max/Min", "Discrete", "Highlighted"), selected = "None"),
               conditionalPanel(
                 condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
@@ -74,18 +74,23 @@ shinyUI(fluidPage(
             selectInput("xInput", "X-axis", c()),
             selectInput("yInput", "Y-Axis", c()),
             br(),
-            p(strong("Adjust Sliders to Selection:")),
+            p(strong("Adjust Sliders to Selection")),
             actionButton("updateX", "X"),
             actionButton("updateY", "Y"),
-            actionButton("updateBoth", "Both")
+            actionButton("updateBoth", "Both"),
+            br(), br(),
+            #p(strong("Highlight Selection")),
+            bootstrapPage(
+              actionButton("selectedData", "Highlight Selection", class = "btn btn-primary")
+            )
           )
         ),
         column(9,
           plotOutput("singlePlot", click = "plot_click", brush = "plot_brush", height=700)
-        ),
-        column(12,
-          verbatimTextOutput("info")
         )
+        # column(12,
+        #   verbatimTextOutput("info")
+        # )
       )
     ),
     tabPanel("Data Table",

@@ -94,11 +94,12 @@ shinyServer(function(input, output, clientData, session) {
           else {
             if(current == 'colSlider'){
               print("Updated colslider from csv")
-              isolate(updateSliderInput(
+              newValues <- as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
+              updateSliderInput(
                 session,
                 current,
-                value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-              ))
+                value = c(newValues[1], newValues[2])
+              )
             }
             else {
               if (current == 'autoRender' | current == 'removeMissing'){

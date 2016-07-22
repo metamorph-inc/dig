@@ -153,10 +153,11 @@ shinyServer(function(input, output, clientData, session) {
     autoRender <- c('autoRender', input$autoRender)
     pointStyle <- c('pointStyle', input$pointStyle)
     pointSize <- c('pointSize', input$pointSize)
+    #plotBrush <- c('plotBrush', toString(input$plot_brush))
     
     presets <- cbind(presets, display, color, colVarNum, colVarFac, varMinMax, 
                      colSlider, xInput, yInput, removeMissing, autoRender,
-                     pointStyle, pointSize)
+                     pointStyle, pointSize)#, plotBrush)
     presets
     
   })
@@ -362,6 +363,15 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
+  #Credit='akhmed' http://stackoverflow.com/questions/9063889/rounding-a-dataframe-in-r
+  round_df <- function(df, digits) {
+    nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
+    
+    df[,nums] <- round(df[,nums], digits = digits)
+    
+    (df)
+  }
+  
   # Data functions -----------------------------------------------------------
   filterData <- reactive({
     print("In filterData()")
@@ -394,51 +404,15 @@ shinyServer(function(input, output, clientData, session) {
     print("Data Filtered")
     data
   })
+  
+  
 
   colorData <- reactive({
     print("In colorData()")
     slider <- input$colSlider
     data <- filterData()
-    #selected <- read.delim(textConnection(unlist(strsplit(info(), "\\n"))), header = FALSE, sep = "")
-    if (!is.null(input$plot_brush)){
-      selected <- unlist(strsplit(info(), "\\n"))
-      brushCols <- NULL
-      brushRows <- NULL
-      for (i in 1:length(selected)){
-        current <- unlist(strsplit(selected[i], "\\s+"))
-        if (is.na(as.numeric(current[1]))){
-          brushCols <- c(brushCols, current[2:length(current)])
-        }
-        else {
-          if(!is.null(brushRows)){
-            if(length(current) < ncol(brushRows)){
-              current[ncol(brushRows)] <- NA
-            }
-          }
-          brushRows <- rbind(brushRows, current)
-        }
-      }
-      
-      idBrush <- unique(brushRows[,1])
-      
-      #Initialize dataframe with column names
-      brushData <- as.data.frame(setNames(replicate(length(brushCols),numeric(0), simplify = F), brushCols))
-      
-      #Create unique vectors for each data point
-      for(i in 1:length(idBrush)){
-        newVector <- NULL
-        for(j in 1:dim(brushRows)[1]){
-          if(brushRows[j] == idBrush[i]){
-            newElements <- brushRows[j,2:dim(brushRows)[2]]
-            newVector <- c(newVector, newElements[!is.na(newElements)])
-          }
-        }
-        brushData[nrow(brushData)+1,] <- newVector
-      }
-
-    }
     
-    #validate(need(nrow(data) > 0, "No data points fit the current filtering scheme"))
+    
     data$color <- character(nrow(data))
     data$color <- "black"
      if (input$colType == "Max/Min") {
@@ -464,7 +438,13 @@ shinyServer(function(input, output, clientData, session) {
        }
        else {
          if (input$colType == "Highlighted") {
-           print("Nah b")
+           if (!is.null(input$plot_brush)){
+             xUpper <- data[input$xInput] < input$plot_brush$xmax
+             xLower <- data[input$xInput] > input$plot_brush$xmin
+             yUpper <- data[input$yInput] < input$plot_brush$ymax
+             yLower <- data[input$yInput] > input$plot_brush$ymin
+             data$color[xUpper & xLower & yUpper & yLower] <- "#377EB8" #light blue
+           }
          }
        }
      }
@@ -541,7 +521,7 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   output$pairsDisplay <- renderUI({
-    plotOutput("pairsPlot", click = "pairs_click", brush = "pairs_brush", height=700)
+    plotOutput("pairsPlot", height=700)
   })
   
   output$filterError <- renderUI({
@@ -636,7 +616,7 @@ shinyServer(function(input, output, clientData, session) {
                  xvar = input$xInput,
                  yvar = input$yInput)
   })
-
+  
   # Data Table Tab --------------------------------------------------------------------------------
   output$table <- renderDataTable({
     input$updateDataTable

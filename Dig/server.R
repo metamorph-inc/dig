@@ -27,11 +27,29 @@ shinyServer(function(input, output, clientData, session) {
     raw = read.csv("../../results/mergedPET.csv", fill=T)
   }
   
+  
+  #Credit: Henrik Bengtsson source:https://stat.ethz.ch/pipermail/r-help/2007-June/133564.html
+  fileChoose <- function(...) {
+    pathname <- NULL;
+    tryCatch({
+      pathname <- file.choose();
+    }, error = function(ex) {
+    })
+    pathname;
+  }
+  
   filedata <- eventReactive(
     input$importSession, {
-      file <- file.choose()
-      read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+      file <- fileChoose()
+      if (!is.null(file)){
+        read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+      }
+      else{
+        return(NULL)
+      }
   })
+  
+  
 
   #Changes values based on user uploaded csv file
   observe({
@@ -76,11 +94,11 @@ shinyServer(function(input, output, clientData, session) {
           else {
             if(current == 'colSlider'){
               print("Updated colslider from csv")
-              updateSliderInput(
+              isolate(updateSliderInput(
                 session,
                 current,
                 value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-              )
+              ))
             }
             else {
               if (current == 'autoRender' | current == 'removeMissing'){
@@ -92,13 +110,20 @@ shinyServer(function(input, output, clientData, session) {
                 )
               }
               else {
-                parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
-                trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-                updateSelectInput(
-                  session,
-                  current,
-                  selected = trimmedValue
-                )
+                if (current == 'plot_brush'){
+                  parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                  trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+                  
+                }
+                else{
+                  parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                  trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+                  updateSelectInput(
+                    session,
+                    current,
+                    selected = trimmedValue
+                  )
+                }
               }
             }
           }
@@ -153,11 +178,11 @@ shinyServer(function(input, output, clientData, session) {
     autoRender <- c('autoRender', input$autoRender)
     pointStyle <- c('pointStyle', input$pointStyle)
     pointSize <- c('pointSize', input$pointSize)
-    #plotBrush <- c('plotBrush', toString(input$plot_brush))
+    #plot_brush <- c('plot_brush', toString(input$plot_brush))
     
     presets <- cbind(presets, display, color, colVarNum, colVarFac, varMinMax, 
                      colSlider, xInput, yInput, removeMissing, autoRender,
-                     pointStyle, pointSize)#, plotBrush)
+                     pointStyle, pointSize)#, plot_brush)
     presets
     
   })
@@ -363,14 +388,6 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
-  #Credit='akhmed' http://stackoverflow.com/questions/9063889/rounding-a-dataframe-in-r
-  round_df <- function(df, digits) {
-    nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
-    
-    df[,nums] <- round(df[,nums], digits = digits)
-    
-    (df)
-  }
   
   # Data functions -----------------------------------------------------------
   filterData <- reactive({
@@ -411,8 +428,6 @@ shinyServer(function(input, output, clientData, session) {
     print("In colorData()")
     slider <- input$colSlider
     data <- filterData()
-    
-    
     data$color <- character(nrow(data))
     data$color <- "black"
      if (input$colType == "Max/Min") {
@@ -610,12 +625,20 @@ shinyServer(function(input, output, clientData, session) {
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
 
+  plotBrush <- c(54.3823528807057, 
+                 61.5126539150441, 
+                 1666671.50384881, 
+                 2363186.16995517)
+                 #list(), list(left = 49.409384, right = 65.588216, bottom = 1101582.4, top = 2811427.6), list(left = 58.1949078562768, right = 505.192852073614, bottom = 626.672717879574, top = 57.1454620968134), list(x = NULL, y = NULL), xy, plot_brush, singlePlot)
+  
+  
   info <- renderPrint({
     brushedPoints(filterData(), 
-                 input$plot_brush,
+                 plotBrush,
                  xvar = input$xInput,
                  yvar = input$yInput)
   })
+  
   
   # Data Table Tab --------------------------------------------------------------------------------
   output$table <- renderDataTable({
@@ -642,30 +665,28 @@ shinyServer(function(input, output, clientData, session) {
     if(varClass[[input$colVarNum]] == "numeric") {
       # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
-      if(is.null(filedata())){
-        updateSliderInput(session,
-                          "colSlider",
-                          step = signif(absStep, digits = 4),
-                          min = signif(absMin-absStep*10, digits = 4),
-                          max = signif(absMax+absStep*10, digits = 4),
-                          value = c(unname(thirtythree), unname(sixtysix))
-        )
-      }
-      else {
-        print("Updated colslider from csv")
-        sliderValue <- as.numeric(unlist(strsplit(toString(filedata()['colSlider']), ", ")))
-        if (input$colVarNum != gsub("^\\s+|\\s+$", "",  filedata()$colVarNum)){
-          sliderValue <- c(unname(thirtythree), unname(sixtysix))
-        }
-        updateSliderInput(
-          session,
-          "colSlider",
-          step = signif(absStep, digits = 4),
-          min = signif(absMin-absStep*10, digits = 4),
-          max = signif(absMax+absStep*10, digits = 4),
-          value = sliderValue
-        )
-      }
+      updateSliderInput(session,
+                        "colSlider",
+                        step = signif(absStep, digits = 4),
+                        min = signif(absMin-absStep*10, digits = 4),
+                        max = signif(absMax+absStep*10, digits = 4),
+                        value = c(unname(thirtythree), unname(sixtysix))
+      )
+      # else {
+      #   print("Updated colslider from csv")
+      #   sliderValue <- as.numeric(unlist(strsplit(toString(filedata()['colSlider']), ", ")))
+      #   if (input$colVarNum != gsub("^\\s+|\\s+$", "",  filedata()$colVarNum)){
+      #     sliderValue <- c(unname(thirtythree), unname(sixtysix))
+      #   }
+      #   updateSliderInput(
+      #     session,
+      #     "colSlider",
+      #     step = signif(absStep, digits = 4),
+      #     min = signif(absMin-absStep*10, digits = 4),
+      #     max = signif(absMax+absStep*10, digits = 4),
+      #     value = sliderValue
+      #   )
+      # }
     }
     if(varClass[[input$colVarNum]] == "integer") {
       # print("In updated slider: integer")

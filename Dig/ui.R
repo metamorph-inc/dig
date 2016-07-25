@@ -110,6 +110,12 @@ shinyUI(fluidPage(
           wellPanel(
             h4("Data Processing Options"),
             checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
+            fluidRow(
+              column(4, checkboxInput("removeOutliers", "Remove Outliers", value = FALSE)),
+              column(8, conditionalPanel("input.removeOutliers == '1'",
+                               selectInput("numDevs", HTML("Within _ &sigma;'s of data"), choices = seq(5), selected = 2)
+              ))
+            ),
             hr(),
             
             h4("Render Options"),
@@ -133,8 +139,8 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.1"),
-            p(strong("Date:"), "7/20/2016"),
+            p(strong("Version:"), "v1.2.2"),
+            p(strong("Date:"), "7/25/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "wknight@metamorphsoftware.com")
           )

@@ -34,6 +34,8 @@ shinyServer(function(input, output, clientData, session) {
     tryCatch({
       pathname <- file.choose();
     }, error = function(ex) {
+      
+      
     })
     pathname;
   }
@@ -302,9 +304,19 @@ shinyServer(function(input, output, clientData, session) {
   output$sliders <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
+        stdDev <- sd(raw[varNames[column]][,1])
+        mean <- mean(raw[varNames[column]][,1])
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+          if(input$removeOutliers){
+            if(round(mean + as.integer(input$numDevs)*stdDev, 6) < max){
+              max <- round(mean + as.integer(input$numDevs)*stdDev, 6)
+            }
+            if(round(mean - as.integer(input$numDevs)*stdDev, 6) > min){
+              min <- round(mean - as.integer(input$numDevs)*stdDev, 6)
+            }
+          }
           diff <- (max-min)
           # print(paste(column, "min", min, "max", max, "diff", diff))
           if (diff != 0) {
@@ -324,6 +336,14 @@ shinyServer(function(input, output, clientData, session) {
           if (varClass[column] == "integer") {
             max <- as.integer(unname(rawAbsMax[varNames[column]]))
             min <- as.integer(unname(rawAbsMin[varNames[column]]))
+            if(input$removeOutliers){
+              if(round(mean + as.integer(input$numDevs)*stdDev) < max){
+                max <- round(mean + as.integer(input$numDevs)*stdDev)
+              }
+              if(round(mean - as.integer(input$numDevs)*stdDev) > min){
+                min <- round(mean - as.integer(input$numDevs)*stdDev)
+              }
+            }
             if (min != max) {
               column(2, 
                      sliderInput(paste0('inp', column),

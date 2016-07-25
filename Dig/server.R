@@ -217,6 +217,37 @@ shinyServer(function(input, output, clientData, session) {
     input$exportSession, {
     print("clicked button dawg")}
   )
+  
+  raw_plus <- reactive({
+    data <- raw
+    
+    if(input$removeOutliers){
+      for(column in 1:length(varNames)) {
+        inpName=paste("inp",toString(column),sep="")
+        nname = varNames[column]
+        rng <- c(0,1)
+        
+        if((varClass[column]=="numeric" | varClass[column]=="integer")) {
+          stdDev <- sd(data[[nname]])
+          mean <- mean(data[[nname]])
+          rng[1] <- round(mean - as.integer(input$numDevs)*stdDev, 6)
+          rng[2] <- round(mean + as.integer(input$numDevs)*stdDev, 6)
+          if(varClass[column] == "integer"){
+            rng[1] <- round(rng[1])
+            rng[2] <- round(rng[2])
+          }
+          above <- (data[[nname]] >= rng[1])
+          below <- (data[[nname]] <= rng[2])
+          inRange <- above & below
+        } 
+        
+        #if(input$removeMissing == FALSE) {inRange <- inRange | is.na(data[[nname]])}
+        data <- subset(data, inRange)
+      }
+    }
+    
+    data
+  })
 
   # Pre-processing -----------------------------------------------------------
   # print(str(raw))
@@ -236,35 +267,48 @@ shinyServer(function(input, output, clientData, session) {
   print(paste("varNum:"))
   print(paste(varNum))
   
-  rawAbsMin = apply(raw[varNum], 2, min, na.rm=TRUE)
-  rawAbsMax = apply(raw[varNum], 2, max, na.rm=TRUE)
-  print(paste(rawAbsMax))
-  print(paste(rawAbsMin))
-
-  varRangeNum <- varNum[(rawAbsMin != rawAbsMax) & (rawAbsMin != Inf)]
+  rawAbsMin <- reactive({
+    apply(raw_plus()[varNum], 2, min, na.rm=TRUE)
+  })
+  
+  rawAbsMax <- reactive({
+    apply(raw_plus()[varNum], 2, max, na.rm=TRUE)
+  }) 
+  
+  varRangeNum <- reactive({
+    varNum[(rawAbsMin() != rawAbsMax()) & (rawAbsMin() != Inf)]
+  })
   print(paste("varRangeNum:"))
-  print(paste(varRangeNum))
   
   varRangeFac <- varFac[apply(raw[varFac], 2, function(x) (length(names(table(x))) > 1))]
   print(paste("varRangeFac:"))
   print(paste(varRangeFac))
   
-  varRange <- c(varRangeFac, varRangeNum)
+  varRange <- reactive({
+    c(varRangeFac, varRangeNum())
+  })
   print(paste("varRange:"))
-  print(paste(varRange))
   
-  print("Updating Panel Selections...")
-  updateSelectInput(session, "colVarNum", choices = varRangeNum, selected = varRangeNum[c(1)])
-  updateSelectInput(session, "display", choices = varRange, selected = varRange[c(1,2)])
-  updateSelectInput(session, "xInput", choices = varRange, selected = varRange[c(1)])
-  updateSelectInput(session, "yInput", choices = varRange, selected = varRange[c(2)])
-  
+  observe({
+
+    print("Updating Panel Selections...")
+    
+    isolate({
+      updateSelectInput(session, "colVarNum", choices = c(varRangeNum()), selected = varRangeNum()[c(1)])
+      updateSelectInput(session, "display", choices = varRange(), selected = varRange()[c(1,2)])
+      updateSelectInput(session, "xInput", choices = varRange(), selected = varRange()[c(1)])
+      updateSelectInput(session, "yInput", choices = varRange(), selected = varRange()[c(2)])
+    })
+    
+  })
+    
   resetPlotOptions <- observeEvent(input$resetOptions, {
     print("In resetPlotOptions()")
-    updateSelectInput(session, "display", selected = varRange[c(1,2)])
+    updateSelectInput(session, "display", selected = varRange()[c(1,2)])
     updateCheckboxInput(session, "color", value = FALSE)
     # updateSelectInput(session, "colType", selected = "Max/Min")
   })
+
   
   # resetViewerOptions <- observeEvent(input$resetSettings, {
   #   print("In resetViewerSettings()")
@@ -307,20 +351,12 @@ shinyServer(function(input, output, clientData, session) {
         stdDev <- sd(raw[varNames[column]][,1])
         mean <- mean(raw[varNames[column]][,1])
         if(varClass[column] == "numeric") {
-          max <- as.numeric(unname(rawAbsMax[varNames[column]]))
-          min <- as.numeric(unname(rawAbsMin[varNames[column]]))
-          if(input$removeOutliers){
-            if(round(mean + as.integer(input$numDevs)*stdDev, 6) < max){
-              max <- round(mean + as.integer(input$numDevs)*stdDev, 6)
-            }
-            if(round(mean - as.integer(input$numDevs)*stdDev, 6) > min){
-              min <- round(mean - as.integer(input$numDevs)*stdDev, 6)
-            }
-          }
+          max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+          min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
           diff <- (max-min)
           # print(paste(column, "min", min, "max", max, "diff", diff))
           if (diff != 0) {
-            #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax[varNames[column]]))))
+            #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax()[varNames[column]]))))
             step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
             # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
             column(2,
@@ -334,16 +370,8 @@ shinyServer(function(input, output, clientData, session) {
           }
         } else {
           if (varClass[column] == "integer") {
-            max <- as.integer(unname(rawAbsMax[varNames[column]]))
-            min <- as.integer(unname(rawAbsMin[varNames[column]]))
-            if(input$removeOutliers){
-              if(round(mean + as.integer(input$numDevs)*stdDev) < max){
-                max <- round(mean + as.integer(input$numDevs)*stdDev)
-              }
-              if(round(mean - as.integer(input$numDevs)*stdDev) > min){
-                min <- round(mean - as.integer(input$numDevs)*stdDev)
-              }
-            }
+            max <- as.integer(unname(rawAbsMax()[varNames[column]]))
+            min <- as.integer(unname(rawAbsMin()[varNames[column]]))
             if (min != max) {
               column(2, 
                      sliderInput(paste0('inp', column),
@@ -364,14 +392,14 @@ shinyServer(function(input, output, clientData, session) {
       lapply(1:length(varNames), function(column) {
         # print(paste(column, varNames[column], varClass[column]))
         if(varClass[column] == "numeric") {
-          max <- as.numeric(unname(rawAbsMax[varNames[column]]))
-          min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+          max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+          min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
           diff <- (max-min)
           if (diff == 0) {column(2, p(strong(paste0(varNames[column],":")), min))}
         } else {
           if (varClass[column] == "integer") {
-            max <- as.integer(unname(rawAbsMax[varNames[column]]))
-            min <- as.integer(unname(rawAbsMin[varNames[column]]))
+            max <- as.integer(unname(rawAbsMax()[varNames[column]]))
+            min <- as.integer(unname(rawAbsMin()[varNames[column]]))
             if (min == max) {column(2, p(strong(paste0(varNames[column],":")), min))}
           } else {
             if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) == 1) {
@@ -387,8 +415,8 @@ shinyServer(function(input, output, clientData, session) {
     print("In resetDefaultSliders()")
     for(column in 1:length(varNames)) {
       if(varClass[column] == "numeric") {
-        max <- as.numeric(unname(rawAbsMax[varNames[column]]))
-        min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+        max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+        min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
         diff <- (max-min)
         if (diff != 0) {
           step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
@@ -396,8 +424,8 @@ shinyServer(function(input, output, clientData, session) {
         }
       } else {
         if(varClass[column] == "integer") {
-          max <- as.integer(unname(rawAbsMax[varNames[column]]))
-          min <- as.integer(unname(rawAbsMin[varNames[column]]))
+          max <- as.integer(unname(rawAbsMax()[varNames[column]]))
+          min <- as.integer(unname(rawAbsMin()[varNames[column]]))
           if(min != max) {
             updateSliderInput(session, paste0('inp', column), value = c(min, max))
           }
@@ -412,6 +440,14 @@ shinyServer(function(input, output, clientData, session) {
   
   
   # Data functions -----------------------------------------------------------
+  # if(input$removeOutliers){
+  #   if(round(mean + as.integer(input$numDevs)*stdDev, 6) < max){
+  #     max <- round(mean + as.integer(input$numDevs)*stdDev, 6)
+  #   }
+  #   if(round(mean - as.integer(input$numDevs)*stdDev, 6) > min){
+  #     min <- round(mean - as.integer(input$numDevs)*stdDev, 6)
+  #   }
+  # }
   filterData <- reactive({
     print("In filterData()")
     data <- raw
@@ -420,9 +456,11 @@ shinyServer(function(input, output, clientData, session) {
       inpName=paste("inp",toString(column),sep="")
       nname = varNames[column]
       rng = input[[inpName]]
-      # print(paste("column: ", column, "Checking", nname, "rng", rng[1], "(", rawAbsMin[column], ",", rawAbsMax[column], ")", rng[2]))
+      # print(paste("column: ", column, "Checking", nname, "rng", rng[1], "(", rawAbsMin()[column], ",", rawAbsMax()[column], ")", rng[2]))
       if(length(rng) != 0) {
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
+          stdDev <- sd(data[[nname]])
+          mean <- mean(data[[nname]])
           print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
@@ -444,8 +482,6 @@ shinyServer(function(input, output, clientData, session) {
     data
   })
   
-  
-
   colorData <- reactive({
     print("In colorData()")
     slider <- input$colSlider
@@ -678,8 +714,8 @@ shinyServer(function(input, output, clientData, session) {
     thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33, na.rm=TRUE)
     sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66, na.rm=TRUE)
     
-    absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
-    absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
+    absMin <- as.numeric(unname(rawAbsMin()[paste(input$colVarNum)]))
+    absMax <- as.numeric(unname(rawAbsMax()[paste(input$colVarNum)]))
     absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
     # print(paste("class(max)", class(max), "class(min)", class(min)))
     # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
@@ -722,7 +758,7 @@ shinyServer(function(input, output, clientData, session) {
   
   updateSlider <- function(varName, min, max) {
     if(!is.null(min) & !is.null(max)) {
-      if(varName %in% varRangeNum) {
+      if(varName %in% varRangeNum()) {
         print(paste0("Updating ", varName, " Slider: ", min, " to ", max))
         updateSliderInput(session,
                           paste0("inp", match(varName, varNames)),

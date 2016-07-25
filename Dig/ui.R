@@ -142,7 +142,7 @@ shinyUI(fluidPage(
             p(strong("Version:"), "v1.2.2"),
             p(strong("Date:"), "7/25/2016"),
             p(strong("Developer:"), "Metamorph Software"),
-            p(strong("Support:"), "wknight@metamorphsoftware.com")
+            p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )
         ),
       column(9))

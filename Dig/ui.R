@@ -103,6 +103,19 @@ shinyUI(fluidPage(
         )
       )
     ),
+    tabPanel("Ranges",
+     wellPanel(
+        fluidRow(
+          br(), actionButton("updateRanges", "Update Ranges"), downloadButton('exportRanges', 'Download Ranges'), br(), br(),
+          br(), actionButton("updateRanges", "Update Ranges"), br(), br()
+        ),
+        fluidRow(
+          column(12,
+                 verbatimTextOutput("ranges")
+          )
+        )
+      )
+    ),
     tabPanel("Options",
       fluidRow(
         column(6,
@@ -112,8 +125,9 @@ shinyUI(fluidPage(
             checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
             fluidRow(
               column(4, checkboxInput("removeOutliers", "Remove Outliers", value = FALSE)),
+              
               column(8, conditionalPanel("input.removeOutliers == '1'",
-                               selectInput("numDevs", HTML("Within _ &sigma;'s of data"), choices = seq(5), selected = 2)
+                               selectInput("numDevs", HTML("&sigma;:"), choices = seq(5), selected = 2)
               ))
             ),
             hr(),

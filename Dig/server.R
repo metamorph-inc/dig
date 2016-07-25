@@ -21,6 +21,10 @@ shinyServer(function(input, output, clientData, session) {
     # raw = read.csv(paste0(dirname("/csvs/", query[['csvfilename']]), fill=T)
     raw = read.csv(paste("/media/sf_kevin/Downloads/", query[['csvfilename']], sep=''), fill=T)
   }
+  else if (nzchar(Sys.getenv('DIG_INPUT_CSV')))
+  {
+    raw = read.csv(Sys.getenv('DIG_INPUT_CSV'), fill=T)
+  }
   else
   {
     # raw = read.csv("../data.csv", fill=T)
@@ -179,13 +183,15 @@ shinyServer(function(input, output, clientData, session) {
     xInput <- c('xInput', input$xInput)
     yInput <- c('yInput', input$yInput)
     removeMissing <- c('removeMissing', input$removeMissing)
+    removeOutliers <- c('removeOutliers', input$removeOutliers)
     autoRender <- c('autoRender', input$autoRender)
     pointStyle <- c('pointStyle', input$pointStyle)
     pointSize <- c('pointSize', input$pointSize)
+    
     #plot_brush <- c('plot_brush', toString(input$plot_brush))
     
     presets <- cbind(presets, display, color, colVarNum, colVarFac, varMinMax, 
-                     colSlider, xInput, yInput, removeMissing, autoRender,
+                     colSlider, xInput, yInput, removeMissing, removeOutliers, autoRender,
                      pointStyle, pointSize)#, plot_brush)
     presets
     
@@ -213,17 +219,12 @@ shinyServer(function(input, output, clientData, session) {
     }
   )
   
-  observeEvent(
-    input$exportSession, {
-    print("clicked button dawg")}
-  )
-  
   raw_plus <- reactive({
     data <- raw
     
     if(input$removeOutliers){
       for(column in 1:length(varNames)) {
-        inpName=paste("inp",toString(column),sep="")
+        
         nname = varNames[column]
         rng <- c(0,1)
         
@@ -239,12 +240,18 @@ shinyServer(function(input, output, clientData, session) {
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
           inRange <- above & below
-        } 
-        
-        #if(input$removeMissing == FALSE) {inRange <- inRange | is.na(data[[nname]])}
+        }
         data <- subset(data, inRange)
       }
     }
+    
+    # if(input$removeMissing){
+    #   for(column in 1:length(varNames)) {
+    #     nname = varNames[column]
+    #     inRange <- !is.na(data[[nname]])
+    #     data <- subset(data, inRange)
+    #   }
+    # }
     
     data
   })
@@ -493,13 +500,13 @@ shinyServer(function(input, output, clientData, session) {
       bottom <- slider[1]
       top <- slider[2]
       print(paste("Coloring Data:", name, bottom, top))
-      data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "yellow"
+      data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "#F1C40F"
       if (input$radio == "max") {
-        data$color[data[[name]] < bottom] <- "red"
-        data$color[data[[name]] > top] <- "green"
+        data$color[data[[name]] < bottom] <- "#E74C3C"
+        data$color[data[[name]] > top] <- "#2ECC71"
       } else {
-        data$color[data[[name]] < bottom] <- "green"
-        data$color[data[[name]] > top] <- "red"
+        data$color[data[[name]] < bottom] <- "#2ECC71"
+        data$color[data[[name]] > top] <- "#E74C3C"
       }
      } 
      else {
@@ -533,6 +540,23 @@ shinyServer(function(input, output, clientData, session) {
                          names(table(raw[input$colVarFactor]))[i], '<br/>'))
     }
     rawLabel
+  })
+  
+  rangesData <- reactive({
+    # for(column in 1:length(varNames)) {
+    #   inpName=paste("inp",toString(column),sep="")
+    #   nname = varNames[column]
+    #   rng = input[[inpName]]
+    #   if(length(rng) != 0) {
+    #     if((varClass[column]=="numeric" | varClass[column]=="integer")) {
+    #       # print(paste("Filtering between", rng[1], "and", rng[2]))
+    #       data <- data[data[nname] >= rng[1],]
+    #       data <- data[data[nname] <= rng[2],]
+    #     }
+    #   }
+    # }
+    maxes <- apply(isolate(filterData()), 2, function(x) max(x, na.rm = TRUE))
+    print(paste(maxes))
   })
 
   # Pairs Tab ----------------------------------------------------------------
@@ -617,7 +641,7 @@ shinyServer(function(input, output, clientData, session) {
     idx = 0
     for(choice in 1:length(input$display)) {
       mm <- match(input$display[choice],varNames)
-      if(!is.null(mm) & mm > 0) { idx <- c(idx,mm) }
+      if(mm > 0) { idx <- c(idx,mm) }
     }
     print(idx)
     idx
@@ -629,7 +653,7 @@ shinyServer(function(input, output, clientData, session) {
     idx = 0
     for(choice in 1:length(input$display)) {
       mm <- match(input$display[choice],varNames)
-      if(!is.null(mm) & mm > 0) { idx <- c(idx,mm) }
+      if(mm > 0) { idx <- c(idx,mm) }
     }
     print(idx)
     idx
@@ -644,14 +668,14 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   infoTable <- eventReactive(input$updateStats, {
-    tb <- table(factor(colorData()$color, c("green", "yellow", "red", "black")))
+    tb <- table(factor(colorData()$color, c("#2ECC71", "#F1C40F", "#E74C3C", "black")))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", sum(tb[["green"]], tb[["yellow"]], tb[["red"]], tb[["black"]]),
-             "\nGreen Points: ", tb[["green"]],
-             "\nYellow Points: ", tb[["yellow"]],
-             "\nRed Points: ", tb[["red"]]
+             "\nVisible Points: ", sum(tb[["#2ECC71"]], tb[["#F1C40F"]], tb[["#E74C3C"]], tb[["black"]]),
+             "\nGreen Points: ", tb[["#2ECC71"]],
+             "\nYellow Points: ", tb[["#F1C40F"]],
+             "\nRed Points: ", tb[["#E74C3C"]]
       )
     } else {
       paste0("Total Points: ", nrow(raw),
@@ -664,6 +688,11 @@ shinyServer(function(input, output, clientData, session) {
   output$exportData <- downloadHandler(
     filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },
     content = function(file) { write.csv(filterData(), file) }
+  )
+  
+  output$exportRanges <- downloadHandler(
+    filename = function() { paste('ranges-', Sys.Date(), '.csv', sep='') },
+    content = function(file) { write.csv(rangesData(), file) }
   )
   
   output$exportPlot <- downloadHandler(
@@ -702,6 +731,15 @@ shinyServer(function(input, output, clientData, session) {
   output$table <- renderDataTable({
     input$updateDataTable
     data <- isolate(filterData())
+  })
+  
+  # Ranges Table Tab --------------------------------------------------------------------------------
+  output$ranges <- renderPrint({
+    input$updateRanges
+    # summary(filterData())
+    rangeText <- summary(isolate(filterData()))
+    # print(rangeText)
+    t(rangeText)
   })
   
   # UI Adjustments -----------------------------------------------------------

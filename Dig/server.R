@@ -93,6 +93,7 @@ shinyServer(function(input, output, clientData, session) {
           }
           else {
             if(current == 'colSlider'){
+              updateColorSlider()
               print("Updated colslider from csv")
               newValues <- as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
               updateSliderInput(
@@ -673,21 +674,6 @@ shinyServer(function(input, output, clientData, session) {
                         max = signif(absMax+absStep*10, digits = 4),
                         value = c(unname(thirtythree), unname(sixtysix))
       )
-      # else {
-      #   print("Updated colslider from csv")
-      #   sliderValue <- as.numeric(unlist(strsplit(toString(filedata()['colSlider']), ", ")))
-      #   if (input$colVarNum != gsub("^\\s+|\\s+$", "",  filedata()$colVarNum)){
-      #     sliderValue <- c(unname(thirtythree), unname(sixtysix))
-      #   }
-      #   updateSliderInput(
-      #     session,
-      #     "colSlider",
-      #     step = signif(absStep, digits = 4),
-      #     min = signif(absMin-absStep*10, digits = 4),
-      #     max = signif(absMax+absStep*10, digits = 4),
-      #     value = sliderValue
-      #   )
-      # }
     }
     if(varClass[[input$colVarNum]] == "integer") {
       # print("In updated slider: integer")
@@ -740,7 +726,7 @@ shinyServer(function(input, output, clientData, session) {
   
   observe({
     print("Observing.")
-    if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {
+    if (!is.null(isolate(colorData())) & as.character(input$colVarNum) != "") {
       updateColorSlider()
     }
   })

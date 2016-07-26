@@ -38,8 +38,6 @@ shinyServer(function(input, output, clientData, session) {
     tryCatch({
       pathname <- file.choose();
     }, error = function(ex) {
-      
-      
     })
     pathname;
   }
@@ -153,8 +151,8 @@ shinyServer(function(input, output, clientData, session) {
       }
       
       if (varClass[column] == "numeric") {
-        max <- as.numeric(unname(rawAbsMax[varNames[column]]))
-        min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+        max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+        min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
         diff <- (max-min)
         # print(paste(column, "min", min, "max", max, "diff", diff))
         if (diff != 0) {
@@ -164,8 +162,8 @@ shinyServer(function(input, output, clientData, session) {
       } 
       
       if (varClass[column] == "integer") {
-        max <- as.integer(unname(rawAbsMax[varNames[column]]))
-        min <- as.integer(unname(rawAbsMin[varNames[column]]))
+        max <- as.integer(unname(rawAbsMax()[varNames[column]]))
+        min <- as.integer(unname(rawAbsMin()[varNames[column]]))
         if (min != max) {
           newpreset <- c(newitem, toString(input[[newitem]]))  
           presets <- cbind(presets, newpreset)
@@ -184,15 +182,18 @@ shinyServer(function(input, output, clientData, session) {
     yInput <- c('yInput', input$yInput)
     removeMissing <- c('removeMissing', input$removeMissing)
     removeOutliers <- c('removeOutliers', input$removeOutliers)
+    numDevs <- c('numDevs', input$numDevs)
     autoRender <- c('autoRender', input$autoRender)
     pointStyle <- c('pointStyle', input$pointStyle)
     pointSize <- c('pointSize', input$pointSize)
     
     #plot_brush <- c('plot_brush', toString(input$plot_brush))
     
-    presets <- cbind(presets, display, color, colVarNum, colVarFac, varMinMax, 
-                     colSlider, xInput, yInput, removeMissing, removeOutliers, autoRender,
-                     pointStyle, pointSize)#, plot_brush)
+    presets <- cbind(presets, display, 
+                     color, colVarNum, colVarFac, varMinMax, colSlider, 
+                     xInput, yInput, 
+                     removeMissing, removeOutliers, input$numDevs, autoRender,
+                     pointStyle, pointSize)
     presets
     
   })
@@ -229,8 +230,8 @@ shinyServer(function(input, output, clientData, session) {
         rng <- c(0,1)
         
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          stdDev <- sd(data[[nname]])
-          mean <- mean(data[[nname]])
+          suppressWarnings(stdDev <- sd(data[[nname]]))
+          suppressWarnings(mean <- mean(data[[nname]]))
           rng[1] <- round(mean - as.integer(input$numDevs)*stdDev, 6)
           rng[2] <- round(mean + as.integer(input$numDevs)*stdDev, 6)
           if(varClass[column] == "integer"){
@@ -355,8 +356,7 @@ shinyServer(function(input, output, clientData, session) {
   output$sliders <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
-        stdDev <- sd(raw[varNames[column]][,1])
-        mean <- mean(raw[varNames[column]][,1])
+        
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
           min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
@@ -375,7 +375,8 @@ shinyServer(function(input, output, clientData, session) {
                           value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
             )
           }
-        } else {
+        } 
+        else {
           if (varClass[column] == "integer") {
             max <- as.integer(unname(rawAbsMax()[varNames[column]]))
             min <- as.integer(unname(rawAbsMin()[varNames[column]]))
@@ -457,7 +458,7 @@ shinyServer(function(input, output, clientData, session) {
   # }
   filterData <- reactive({
     print("In filterData()")
-    data <- raw
+    data <- raw_plus()
     # print(paste("Length of VarNames:", length(varNames)))
     for(column in 1:length(varNames)) {
       inpName=paste("inp",toString(column),sep="")
@@ -466,9 +467,7 @@ shinyServer(function(input, output, clientData, session) {
       # print(paste("column: ", column, "Checking", nname, "rng", rng[1], "(", rawAbsMin()[column], ",", rawAbsMax()[column], ")", rng[2]))
       if(length(rng) != 0) {
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          stdDev <- sd(data[[nname]])
-          mean <- mean(data[[nname]])
-          print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
+          #print(paste("Filtering", nname, "between", rng[1], "and", rng[2]))
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
           inRange <- above & below
@@ -519,11 +518,27 @@ shinyServer(function(input, output, clientData, session) {
        else {
          if (input$colType == "Highlighted") {
            if (!is.null(input$plot_brush)){
-             xUpper <- data[input$xInput] < input$plot_brush$xmax
-             xLower <- data[input$xInput] > input$plot_brush$xmin
-             yUpper <- data[input$yInput] < input$plot_brush$ymax
-             yLower <- data[input$yInput] > input$plot_brush$ymin
-             data$color[xUpper & xLower & yUpper & yLower] <- "#377EB8" #light blue
+             if(unname(varClass[input$xInput]) == "factor"){
+               lower <- ceiling(input$plot_brush$xmin)
+               upper <- floor(input$plot_brush$xmax)
+               xRange <- data[input$xInput] == names(table(raw[input$xInput]))[lower:upper]
+             }
+             else {
+               xUpper <- data[input$xInput] < input$plot_brush$xmax
+               xLower <- data[input$xInput] > input$plot_brush$xmin
+               xRange <- xUpper & xLower
+             }
+             if(unname(varClass[input$yInput]) == "factor"){
+               lower <- ceiling(input$plot_brush$ymin)
+               upper <- floor(input$plot_brush$ymay)
+               yRange <- data[input$yInput] == names(table(raw[input$yInput]))[lower:upper]
+             }
+             else{
+               yUpper <- data[input$yInput] < input$plot_brush$ymax
+               yLower <- data[input$yInput] > input$plot_brush$ymin
+               yRange <- yUpper & yLower
+             }
+             data$color[xRange & yRange] <- "#377EB8" #light blue
            }
          }
        }
@@ -533,13 +548,15 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   output$colorLegend <- renderUI({
-    listSize <- length(names(table(raw[input$colVarFactor])))
-    rawLabel <- ""
-    for(i in 1:listSize){
-      rawLabel <- HTML(paste(rawLabel, "<font color=", palette()[i], "<b>", "&#9632", " ",
-                         names(table(raw[input$colVarFactor]))[i], '<br/>'))
+    if(input$colVarFactor != ""){
+      listSize <- length(names(table(raw_plus()[input$colVarFactor])))
+      rawLabel <- ""
+      for(i in 1:listSize){
+        rawLabel <- HTML(paste(rawLabel, "<font color=", palette()[i], "<b>", "&#9632", " ",
+                           names(table(raw[input$colVarFactor]))[i], '<br/>'))
+      }
+      rawLabel
     }
-    rawLabel
   })
   
   rangesData <- reactive({
@@ -712,16 +729,11 @@ shinyServer(function(input, output, clientData, session) {
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
 
-  plotBrush <- c(54.3823528807057, 
-                 61.5126539150441, 
-                 1666671.50384881, 
-                 2363186.16995517)
-                 #list(), list(left = 49.409384, right = 65.588216, bottom = 1101582.4, top = 2811427.6), list(left = 58.1949078562768, right = 505.192852073614, bottom = 626.672717879574, top = 57.1454620968134), list(x = NULL, y = NULL), xy, plot_brush, singlePlot)
   
   
   info <- renderPrint({
     brushedPoints(filterData(), 
-                 plotBrush,
+                 input$plot_brush,
                  xvar = input$xInput,
                  yvar = input$yInput)
   })

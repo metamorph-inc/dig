@@ -230,19 +230,19 @@ shinyServer(function(input, output, clientData, session) {
         rng <- c(0,1)
         
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          suppressWarnings(stdDev <- sd(data[[nname]]))
-          suppressWarnings(mean <- mean(data[[nname]]))
+          suppressWarnings(stdDev <- sd(data[[nname]], na.rm = TRUE))
+          suppressWarnings(mean <- mean(data[[nname]], na.rm = TRUE))
           rng[1] <- round(mean - as.integer(input$numDevs)*stdDev, 6)
           rng[2] <- round(mean + as.integer(input$numDevs)*stdDev, 6)
           if(varClass[column] == "integer"){
-            rng[1] <- round(rng[1])
             rng[2] <- round(rng[2])
           }
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
           inRange <- above & below
+          data <- subset(data, inRange)
         }
-        data <- subset(data, inRange)
+        
       }
     }
     

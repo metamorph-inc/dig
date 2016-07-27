@@ -47,8 +47,8 @@ shinyUI(fluidPage(
             h4("Info"), #br(),
             verbatimTextOutput("stats"),
             conditionalPanel(condition = "input.autoInfo == false",
-                            actionButton("updateStats", "Update")
-                            ), br(), hr(),
+                            actionButton("updateStats", "Update"),
+                            br()),  hr(),
             h4("Download"),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
@@ -110,8 +110,8 @@ shinyUI(fluidPage(
         fluidRow(
           br(), 
           column(6, conditionalPanel(condition = "input.autoRange == false",
-                           actionButton("updateRanges", "Update Ranges"))), 
-          column(6, downloadButton('exportRanges', 'Download Ranges'), br(), br())
+                           actionButton("updateRanges", "Update Ranges")), br(),
+          downloadButton('exportRanges', 'Download Ranges'), br(), br())
         ),
         fluidRow(
           column(12,
@@ -135,17 +135,20 @@ shinyUI(fluidPage(
             ),
             hr(),
             
-            h4("Update Options"),
+            h4("Render Options"),
             checkboxInput("autoRender", "Automatically Rerender Plot", value = TRUE),
-            checkboxInput("autoInfo", "Automatically Update Info", value = TRUE),
-            checkboxInput("autoData", "Automatically Update Data Table", value = TRUE),
-            checkboxInput("autoRange", "Automatically Update Ranges", value = TRUE),
-            br(),
             strong("Data Point Style"),
             fluidRow(
               column(4, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
               column(8, radioButtons("pointSize", NULL, c("Small" = 1, "Medium" = 1.5, "Large" = 2)))
             ),
+            hr(),
+            
+            h4("Automatic Refresh"),
+            checkboxInput("autoInfo", "Info Pane", value = TRUE),
+            checkboxInput("autoData", "Data Table Tab", value = TRUE),
+            checkboxInput("autoRange", "Ranges Tab", value = TRUE),
+            br(),
             hr(),
             
             h4("Session Options"),

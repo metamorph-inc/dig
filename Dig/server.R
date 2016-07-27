@@ -1,4 +1,5 @@
 library(shiny)
+library(TeachingDemos)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -518,25 +519,37 @@ shinyServer(function(input, output, clientData, session) {
        else {
          if (input$colType == "Highlighted") {
            if (!is.null(input$plot_brush)){
-             if(unname(varClass[input$xInput]) == "factor"){
-               lower <- ceiling(input$plot_brush$xmin)
-               upper <- floor(input$plot_brush$xmax)
-               xRange <- data[input$xInput] == names(table(raw[input$xInput]))[lower:upper]
-             }
-             else {
-               xUpper <- data[input$xInput] < input$plot_brush$xmax
-               xLower <- data[input$xInput] > input$plot_brush$xmin
-               xRange <- xUpper & xLower
-             }
-             if(unname(varClass[input$yInput]) == "factor"){
-               lower <- ceiling(input$plot_brush$ymin)
-               upper <- floor(input$plot_brush$ymay)
-               yRange <- data[input$yInput] == names(table(raw[input$yInput]))[lower:upper]
+             if(varClass[input$xInput] == "factor" & varClass[input$yInput] == "factor"){
+               xRange <- FALSE
+               yRange <- FALSE
              }
              else{
-               yUpper <- data[input$yInput] < input$plot_brush$ymax
-               yLower <- data[input$yInput] > input$plot_brush$ymin
-               yRange <- yUpper & yLower
+               if(varClass[input$xInput] == "factor"){
+                 lower <- ceiling(input$plot_brush$xmin)
+                 upper <- floor(input$plot_brush$xmax)
+                 xRange <- data[input$xInput] == names(table(raw[input$xInput]))[lower:upper]
+                 if (lower > upper){
+                   xRange <- FALSE
+                 }
+               }
+               else {
+                 xUpper <- data[input$xInput] < input$plot_brush$xmax
+                 xLower <- data[input$xInput] > input$plot_brush$xmin
+                 xRange <- xUpper & xLower
+               }
+               if(varClass[input$yInput] == "factor"){
+                 lower <- ceiling(input$plot_brush$ymin)
+                 upper <- floor(input$plot_brush$ymay)
+                 yRange <- data[input$yInput] == names(table(raw[input$yInput]))[lower:upper]
+                 if (lower > upper){
+                   yRange <- FALSE
+                 }
+               }
+               else{
+                 yUpper <- data[input$yInput] < input$plot_brush$ymax
+                 yLower <- data[input$yInput] > input$plot_brush$ymin
+                 yRange <- yUpper & yLower
+               }
              }
              data$color[xRange & yRange] <- "#377EB8" #light blue
            }
@@ -611,12 +624,19 @@ shinyServer(function(input, output, clientData, session) {
       #   legend('topright',legend=levels(colorData()[[paste(varFactor[1])]]),pch=1,title=paste(varFactor[1]))
       # } else {
         # print(as.numeric(input$pointStyle))
-          pairs(pairs_data()[pairs_vars()],
-               lower.panel = panel.smooth,
-               upper.panel=NULL, 
-               col = pairs_data()$color,
-               pch = as.numeric(input$pointStyle), 
-               cex = as.numeric(input$pointSize))
+      pairs(pairs_data()[pairs_vars()],
+         lower.panel = panel.smooth,
+         upper.panel=NULL,
+         col = pairs_data()$color,
+         pch = as.numeric(input$pointStyle),
+         cex = as.numeric(input$pointSize))
+          # pairs2(pairs_data()[pairs_vars()],
+          #        pairs_data()[pairs_vars()],
+          #      panel = panel.smooth,
+          #      #upper.panel=NULL,
+          #      col = pairs_data()$color,
+          #      pch = as.numeric(input$pointStyle),
+          #      cex = as.numeric(input$pointSize))
       # }
       print("Plot Rendered.")
     }
@@ -635,7 +655,7 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   output$pairsDisplay <- renderUI({
-    plotOutput("pairsPlot", height=700)
+    plotOutput("pairsPlot", click = "pairs_click", height=700)
   })
   
   output$filterError <- renderUI({
@@ -651,6 +671,41 @@ shinyServer(function(input, output, clientData, session) {
   #                   xvar = input$display[1],
   #                   yvar = input$display[2]))
   # })
+  
+  
+  #Change to single plot when user clicks a plot on pairs matrix
+  observe({
+    if(!is.null(input$pairs_click)){
+      num_vars <- length(input$display)
+      x_pos <- num_vars*input$pairs_click$x
+      y_pos <- num_vars*input$pairs_click$y
+      x_var <- NULL
+      y_var <- NULL
+      a <- 0.1
+      b <- 0.9
+      c <- 0.05
+      limits <- c(a, b+a)
+      for(i in 1:(num_vars-1)){
+        if(findInterval(x_pos, limits) == 1){
+          x_var <- input$display[i]
+        }
+        if(findInterval(y_pos, limits) == 1){
+          y_var <- rev(input$display)[i]
+        }
+        if(!is.null(x_var) & !is.null(y_var)){
+          updateTabsetPanel(session, "inTabset", selected = "Single Plot")
+          updateSelectInput(session, "xInput", selected = x_var)
+          updateSelectInput(session, "yInput", selected = y_var)
+          break
+        }
+        limits <- limits + b + c
+      }
+      print("Printing vars")
+      print(x_var)
+      print(y_var)
+      print("Done printing vars")
+    }
+  })
   
   
   varsList <- reactive({
@@ -729,6 +784,7 @@ shinyServer(function(input, output, clientData, session) {
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
 
+  
   
   
   info <- renderPrint({

@@ -60,10 +60,10 @@ shinyUI(fluidPage(
             uiOutput("pairsDisplay")
           
           #h4(textOutput("filterVars"), align = "center")
+        ),
+        column(6,
+          verbatimTextOutput("pairs_info")
         )
-        # column(6,
-        #   verbatimTextOutput("pairs_info")
-        # )
       )
     ),
     tabPanel("Single Plot",
@@ -87,10 +87,10 @@ shinyUI(fluidPage(
         ),
         column(9,
           plotOutput("singlePlot", click = "plot_click", brush = "plot_brush", height=700)
+        ),
+        column(12,
+          verbatimTextOutput("info")
         )
-        # column(12,
-        #   verbatimTextOutput("info")
-        # )
       )
     ),
     tabPanel("Data Table",
@@ -152,15 +152,15 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.2"),
-            p(strong("Date:"), "7/25/2016"),
+            p(strong("Version:"), "v1.2.3"),
+            p(strong("Date:"), "7/27/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )
         ),
       column(9))
-    )
-  ),
+    ),
+  id = "inTabset"),
   h3("Filter Data:"),
   actionButton("resetSliders", "Reset Sliders"), br(), br(),
   uiOutput("enums"),

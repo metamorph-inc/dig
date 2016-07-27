@@ -655,7 +655,7 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   output$pairsDisplay <- renderUI({
-    plotOutput("pairsPlot", click = "pairs_click", height=700)
+    plotOutput("pairsPlot", dblclick = "pairs_click", height=700)
   })
   
   output$filterError <- renderUI({
@@ -674,37 +674,35 @@ shinyServer(function(input, output, clientData, session) {
   
   
   #Change to single plot when user clicks a plot on pairs matrix
-  observe({
-    if(!is.null(input$pairs_click)){
-      num_vars <- length(input$display)
-      x_pos <- num_vars*input$pairs_click$x
-      y_pos <- num_vars*input$pairs_click$y
-      x_var <- NULL
-      y_var <- NULL
-      a <- 0.1
-      b <- 0.9
-      c <- 0.05
-      limits <- c(a, b+a)
-      for(i in 1:(num_vars-1)){
-        if(findInterval(x_pos, limits) == 1){
-          x_var <- input$display[i]
-        }
-        if(findInterval(y_pos, limits) == 1){
-          y_var <- rev(input$display)[i]
-        }
-        if(!is.null(x_var) & !is.null(y_var)){
-          updateTabsetPanel(session, "inTabset", selected = "Single Plot")
-          updateSelectInput(session, "xInput", selected = x_var)
-          updateSelectInput(session, "yInput", selected = y_var)
-          break
-        }
-        limits <- limits + b + c
+  observeEvent(input$pairs_click, {
+    num_vars <- length(input$display)
+    x_pos <- num_vars*input$pairs_click$x
+    y_pos <- num_vars*input$pairs_click$y
+    x_var <- NULL
+    y_var <- NULL
+    a <- 0.1
+    b <- 0.9
+    c <- 0.05
+    limits <- c(a, b+a)
+    for(i in 1:(num_vars-1)){
+      if(findInterval(x_pos, limits) == 1){
+        x_var <- input$display[i]
       }
-      print("Printing vars")
-      print(x_var)
-      print(y_var)
-      print("Done printing vars")
+      if(findInterval(y_pos, limits) == 1){
+        y_var <- rev(input$display)[i]
+      }
+      if(!is.null(x_var) & !is.null(y_var)){
+        updateTabsetPanel(session, "inTabset", selected = "Single Plot")
+        updateSelectInput(session, "xInput", selected = x_var)
+        updateSelectInput(session, "yInput", selected = y_var)
+        break
+      }
+      limits <- limits + b + c
     }
+    print("Printing vars")
+    print(x_var)
+    print(y_var)
+    print("Done printing vars")
   })
   
   
@@ -740,7 +738,7 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   infoTable <- eventReactive(input$updateStats, {
-    tb <- table(factor(colorData()$color, c("#2ECC71", "#F1C40F", "#E74C3C", "black")))
+    tb <- table(factor(colorData()$color, c("#2ECC71", "#F1C40F", "#377EB8", "#E74C3C", "black")))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
@@ -749,7 +747,25 @@ shinyServer(function(input, output, clientData, session) {
              "\nYellow Points: ", tb[["#F1C40F"]],
              "\nRed Points: ", tb[["#E74C3C"]]
       )
-    } else {
+    } 
+    else if(input$colType == 'Discrete') {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", sum(tb[["#2ECC71"]], tb[["#F1C40F"]], tb[["#E74C3C"]], tb[["black"]]),
+             "\nGreen Points: ", tb[["#2ECC71"]],
+             "\nYellow Points: ", tb[["#F1C40F"]],
+             "\nRed Points: ", tb[["#E74C3C"]],
+             "\nBlue Points: ", tb[["#377EB8"]]
+      )
+    }
+    else if(input$colType == 'Highlighted') {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nVisible Points: ", sum(tb[["#377EB8"]], tb[["black"]]),
+             "\nHighlighted Points: ", tb[["#377EB8"]]
+      )
+    }
+    else{
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", tb[["black"]]
@@ -860,6 +876,11 @@ shinyServer(function(input, output, clientData, session) {
   updateBothSlider <- observeEvent(input$updateBoth, {
     updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
     updateSlider(input$yInput, input$plot_brush$ymin, input$plot_brush$ymax)
+  })
+  
+  observeEvent(input$highlightData, {
+    updateTabsetPanel(session, "inTabset", selected = "Pairs Plot")
+    updateSelectInput(session, "colType", selected = "Highlighted")
   })
   
   updateSlider <- function(varName, min, max) {

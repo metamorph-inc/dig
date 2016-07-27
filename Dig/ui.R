@@ -60,9 +60,6 @@ shinyUI(fluidPage(
             uiOutput("pairsDisplay")
           
           #h4(textOutput("filterVars"), align = "center")
-        ),
-        column(6,
-          verbatimTextOutput("pairs_info")
         )
       )
     ),
@@ -81,7 +78,7 @@ shinyUI(fluidPage(
             br(), br(),
             #p(strong("Highlight Selection")),
             bootstrapPage(
-              actionButton("selectedData", "Highlight Selection", class = "btn btn-primary")
+              actionButton("highlightData", "Highlight Selection", class = "btn btn-primary")
             )
           )
         ),

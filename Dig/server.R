@@ -246,13 +246,13 @@ shinyServer(function(input, output, clientData, session) {
       }
     }
     
-    # if(input$removeMissing){
-    #   for(column in 1:length(varNames)) {
-    #     nname = varNames[column]
-    #     inRange <- !is.na(data[[nname]])
-    #     data <- subset(data, inRange)
-    #   }
-    # }
+    if(input$removeMissing){
+      for(column in 1:length(varNames)) {
+        nname = varNames[column]
+        inRange <- !is.na(data[[nname]])
+        data <- subset(data, inRange)
+      }
+    }
     
     data
   })
@@ -478,7 +478,7 @@ shinyServer(function(input, output, clientData, session) {
             inRange <- (data[[nname]] %in% rng)
           }
         }
-        if(input$removeMissing == FALSE) {inRange <- inRange | is.na(data[[nname]])}
+        inRange <- inRange | is.na(data[[nname]])
         data <- subset(data, inRange)
       }
       

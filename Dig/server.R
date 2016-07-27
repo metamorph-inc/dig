@@ -239,7 +239,7 @@ shinyServer(function(input, output, clientData, session) {
           }
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
-          inRange <- above & below
+          inRange <- above & below | is.na(data[[nname]])
           data <- subset(data, inRange)
         }
         

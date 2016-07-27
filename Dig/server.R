@@ -1,5 +1,4 @@
 library(shiny)
-library(TeachingDemos)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -527,7 +526,10 @@ shinyServer(function(input, output, clientData, session) {
                if(varClass[input$xInput] == "factor"){
                  lower <- ceiling(input$plot_brush$xmin)
                  upper <- floor(input$plot_brush$xmax)
-                 xRange <- data[input$xInput] == names(table(raw[input$xInput]))[lower:upper]
+                 xRange <- FALSE
+                 for (i in lower:upper){
+                   xRange <- xRange | data[input$xInput] == names(table(raw[input$xInput]))[i]
+                 }
                  if (lower > upper){
                    xRange <- FALSE
                  }
@@ -540,7 +542,10 @@ shinyServer(function(input, output, clientData, session) {
                if(varClass[input$yInput] == "factor"){
                  lower <- ceiling(input$plot_brush$ymin)
                  upper <- floor(input$plot_brush$ymay)
-                 yRange <- data[input$yInput] == names(table(raw[input$yInput]))[lower:upper]
+                 yRange <- FALSE
+                 for (i in lower:upper){
+                   yRange <- yRange | data[input$yInput] == names(table(raw[input$yInput]))[i]
+                 }                 
                  if (lower > upper){
                    yRange <- FALSE
                  }
@@ -734,10 +739,15 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   output$stats <- renderText({
-    infoTable()
+    if(input$autoInfo == TRUE){
+      infoTable()
+    }
+    else {
+      slowInfoTable()
+    }
   })
 
-  infoTable <- eventReactive(input$updateStats, {
+  infoTable <- eventReactive(colorData(), {
     tb <- table(factor(colorData()$color, c("#2ECC71", "#F1C40F", "#377EB8", "#E74C3C", "black")))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
@@ -772,6 +782,10 @@ shinyServer(function(input, output, clientData, session) {
       )
     }
   })
+  
+  slowInfoTable <- eventReactive(input$updateStats, {
+    infoTable()
+  })
 
   output$exportData <- downloadHandler(
     filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },
@@ -799,9 +813,6 @@ shinyServer(function(input, output, clientData, session) {
     data <- filterData()
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
-
-  
-  
   
   info <- renderPrint({
     brushedPoints(filterData(), 
@@ -812,18 +823,31 @@ shinyServer(function(input, output, clientData, session) {
   
   
   # Data Table Tab --------------------------------------------------------------------------------
+  slowFilterData <- eventReactive(input$updateDataTable, {
+    filterData()
+  })
+  
   output$table <- renderDataTable({
-    input$updateDataTable
-    data <- isolate(filterData())
+    if(input$autoData == TRUE){
+      filterData()
+    }
+    else {
+      data <- slowFilterData()
+    }
   })
   
   # Ranges Table Tab --------------------------------------------------------------------------------
+  slowRangeData <- eventReactive(input$updateRanges, {
+    t(summary(filterData()))
+  })
+  
   output$ranges <- renderPrint({
-    input$updateRanges
-    # summary(filterData())
-    rangeText <- summary(isolate(filterData()))
-    # print(rangeText)
-    t(rangeText)
+    if(input$autoRange == TRUE){
+      t(summary(filterData()))
+    }
+    else {
+      slowRangeData()
+    }
   })
   
   # UI Adjustments -----------------------------------------------------------

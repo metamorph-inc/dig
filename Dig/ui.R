@@ -46,7 +46,9 @@ shinyUI(fluidPage(
             ,  hr(),
             h4("Info"), #br(),
             verbatimTextOutput("stats"),
-            actionButton("updateStats", "Update"), br(), hr(),
+            conditionalPanel(condition = "input.autoInfo == false",
+                            actionButton("updateStats", "Update")
+                            ), br(), hr(),
             h4("Download"),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
@@ -93,7 +95,10 @@ shinyUI(fluidPage(
     tabPanel("Data Table",
       wellPanel(
         fluidRow(
-          br(), actionButton("updateDataTable", "Update Data Table"), br(), br()
+          br(), 
+          conditionalPanel(condition = "input.autoData == false", 
+                           actionButton("updateDataTable", "Update Data Table")
+                           ), br(), br()
         ),
         fluidRow(
           dataTableOutput(outputId="table")
@@ -103,8 +108,10 @@ shinyUI(fluidPage(
     tabPanel("Ranges",
      wellPanel(
         fluidRow(
-          br(), actionButton("updateRanges", "Update Ranges"), downloadButton('exportRanges', 'Download Ranges'), br(), br(),
-          br(), actionButton("updateRanges", "Update Ranges"), br(), br()
+          br(), 
+          column(6, conditionalPanel(condition = "input.autoRange == false",
+                           actionButton("updateRanges", "Update Ranges"))), 
+          column(6, downloadButton('exportRanges', 'Download Ranges'), br(), br())
         ),
         fluidRow(
           column(12,
@@ -128,8 +135,11 @@ shinyUI(fluidPage(
             ),
             hr(),
             
-            h4("Render Options"),
-            checkboxInput("autoRender", "Automatically Rerender", value = TRUE),
+            h4("Update Options"),
+            checkboxInput("autoRender", "Automatically Rerender Plot", value = TRUE),
+            checkboxInput("autoInfo", "Automatically Update Info", value = TRUE),
+            checkboxInput("autoData", "Automatically Update Data Table", value = TRUE),
+            checkboxInput("autoRange", "Automatically Update Ranges", value = TRUE),
             br(),
             strong("Data Point Style"),
             fluidRow(

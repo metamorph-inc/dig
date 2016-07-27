@@ -1,4 +1,5 @@
 library(shiny)
+require(shinyjs)
 
 # Define UI for PET Design Space Browser application
 shinyUI(fluidPage(
@@ -126,7 +127,9 @@ shinyUI(fluidPage(
           br(),
           wellPanel(
             h4("Data Processing Options"),
-            checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
+            fluidRow(
+              column(12, checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE))
+            ),
             fluidRow(
               column(4, checkboxInput("removeOutliers", "Remove Outliers", value = FALSE)),
               column(6, conditionalPanel("input.removeOutliers == '1'",
@@ -135,12 +138,8 @@ shinyUI(fluidPage(
             ),
             hr(),
             
-            h4("Update Options"),
+            h4("Render Options"),
             checkboxInput("autoRender", "Automatically Rerender Plot", value = TRUE),
-            checkboxInput("autoInfo", "Automatically Update Info", value = TRUE),
-            checkboxInput("autoData", "Automatically Update Data Table", value = TRUE),
-            checkboxInput("autoRange", "Automatically Update Ranges", value = TRUE),
-            br(),
             strong("Data Point Style"),
             fluidRow(
               column(4, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),
@@ -148,6 +147,28 @@ shinyUI(fluidPage(
             ),
             hr(),
             
+            h4("Automatic Refresh"),
+            checkboxInput("autoInfo", "Info Pane", value = TRUE),
+            checkboxInput("autoData", "Data Table Tab", value = TRUE),
+            checkboxInput("autoRange", "Ranges Tab", value = TRUE),
+            br(),
+            hr(),
+
+            h4("Color Options"),
+            #h5("Min/Max", align = "center"),
+            fluidRow(
+              column(4, colourInput("normColor", "Normal", "black"))
+            ),
+            fluidRow(
+              column(4, colourInput("minColor", "Min", "#F1C40F")),
+              column(4, colourInput("midColor", "In Between", "#2ECC71")),
+              column(4, colourInput("maxColor", "Max", "#E74C3C"))
+            ),
+            #h5("Highlighted", align = "center"),
+            fluidRow(
+              column(4, colourInput("highlightColor", "Highlighted", "#377EB8"))
+            ), hr(), br(), br(),
+
             h4("Session Options"),
             strong("Save Session"),
             textInput("sessionName", NULL, placeholder = "Enter a filename..."),

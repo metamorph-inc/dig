@@ -493,19 +493,19 @@ shinyServer(function(input, output, clientData, session) {
     slider <- input$colSlider
     data <- filterData()
     data$color <- character(nrow(data))
-    data$color <- "black"
+    data$color <- input$normColor
      if (input$colType == "Max/Min") {
       name <- isolate(input$colVarNum)
       bottom <- slider[1]
       top <- slider[2]
       print(paste("Coloring Data:", name, bottom, top))
-      data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- "#F1C40F"
+      data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- input$midColor
       if (input$radio == "max") {
-        data$color[data[[name]] < bottom] <- "#E74C3C"
-        data$color[data[[name]] > top] <- "#2ECC71"
+        data$color[data[[name]] < bottom] <- input$maxColor
+        data$color[data[[name]] > top] <- input$minColor
       } else {
-        data$color[data[[name]] < bottom] <- "#2ECC71"
-        data$color[data[[name]] > top] <- "#E74C3C"
+        data$color[data[[name]] < bottom] <- input$minColor
+        data$color[data[[name]] > top] <- input$maxColor
       }
      } 
      else {
@@ -556,7 +556,7 @@ shinyServer(function(input, output, clientData, session) {
                  yRange <- yUpper & yLower
                }
              }
-             data$color[xRange & yRange] <- "#377EB8" #light blue
+             data$color[xRange & yRange] <- input$highlightColor #light blue
            }
          }
        }
@@ -748,37 +748,47 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   infoTable <- eventReactive(colorData(), {
-    tb <- table(factor(colorData()$color, c("#2ECC71", "#F1C40F", "#377EB8", "#E74C3C", "black")))
+    tb <- table(factor(colorData()$color, c(input$midColor, input$minColor, input$highlightColor, input$maxColor, input$normColor)))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", sum(tb[["#2ECC71"]], tb[["#F1C40F"]], tb[["#E74C3C"]], tb[["black"]]),
-             "\nGreen Points: ", tb[["#2ECC71"]],
-             "\nYellow Points: ", tb[["#F1C40F"]],
-             "\nRed Points: ", tb[["#E74C3C"]]
+             "\nVisible Points: ", sum(tb[[input$minColor]], tb[[input$midColor]], tb[[input$maxColor]], tb[[input$normColor]]),
+             "\nBelow Points: ", tb[[input$minColor]],
+             "\nIn Range Points: ", tb[[input$midColor]],
+             "\nAbove Points: ", tb[[input$maxColor]]
       )
     } 
     else if(input$colType == 'Discrete') {
-      paste0("Total Points: ", nrow(raw),
+      tb <- table(factor(colorData()$color, palette()))
+      d_vars <- names(table(raw[input$colVarFactor]))
+      output_string <- paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", sum(tb[["#2ECC71"]], tb[["#F1C40F"]], tb[["#E74C3C"]], tb[["black"]]),
-             "\nGreen Points: ", tb[["#2ECC71"]],
-             "\nYellow Points: ", tb[["#F1C40F"]],
-             "\nRed Points: ", tb[["#E74C3C"]],
-             "\nBlue Points: ", tb[["#377EB8"]]
-      )
+             "\nVisible Points: ", sum(tb[[palette()[1]]], 
+                                       tb[[palette()[2]]], 
+                                       tb[[palette()[3]]], 
+                                       tb[[palette()[4]]], 
+                                       tb[[palette()[5]]], 
+                                       tb[[palette()[6]]], 
+                                       tb[[palette()[7]]], 
+                                       tb[[palette()[8]]], 
+                                       tb[[palette()[9]]]))
+      for(i in 1:length(d_vars)){
+             output_string <- paste0(output_string, 
+                                     "\n", d_vars[i]," Points: ", tb[[palette()[i]]])
+      }
+      output_string
     }
     else if(input$colType == 'Highlighted') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", sum(tb[["#377EB8"]], tb[["black"]]),
-             "\nHighlighted Points: ", tb[["#377EB8"]]
+             "\nVisible Points: ", sum(tb[[input$highlightColor]], tb[[input$normColor]]),
+             "\nHighlighted Points: ", tb[[input$highlightColor]]
       )
     }
     else{
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", tb[["black"]]
+             "\nVisible Points: ", tb[[input$normColor]]
       )
     }
   })

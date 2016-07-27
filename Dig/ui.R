@@ -1,4 +1,5 @@
 library(shiny)
+require(shinyjs)
 
 # Define UI for PET Design Space Browser application
 shinyUI(fluidPage(
@@ -147,7 +148,23 @@ shinyUI(fluidPage(
             checkboxInput("autoData", "Data Table Tab", value = TRUE),
             checkboxInput("autoRange", "Ranges Tab", value = TRUE),
             hr(),
-            
+
+            h4("Color Options"),
+            #h5("Min/Max", align = "center"),
+            fluidRow(
+              column(4, colourInput("normColor", "Normal", "black"))
+            ),
+            fluidRow(
+              column(4, colourInput("minColor", "Min", "#F1C40F")),
+              column(4, colourInput("midColor", "In Between", "#2ECC71")),
+              column(4, colourInput("maxColor", "Max", "#E74C3C"))
+            ),
+            #h5("Highlighted", align = "center"),
+            fluidRow(
+              column(4, colourInput("highlightColor", "Highlighted", "#377EB8"))
+            ), hr(), br(), br(),
+
+
             h4("Session Options"),
             strong("Save Session"),
             textInput("sessionName", NULL, placeholder = "Enter a filename..."),

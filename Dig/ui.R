@@ -48,8 +48,8 @@ shinyUI(fluidPage(
             h4("Info"), #br(),
             verbatimTextOutput("stats"),
             conditionalPanel(condition = "input.autoInfo == false",
-                            actionButton("updateStats", "Update")
-                            ), br(), hr(),
+                            actionButton("updateStats", "Update"),
+                            br()),  hr(),
             h4("Download"),
             downloadButton('exportData', 'Dataset'),
             paste("          "),
@@ -111,8 +111,8 @@ shinyUI(fluidPage(
         fluidRow(
           br(), 
           column(6, conditionalPanel(condition = "input.autoRange == false",
-                           actionButton("updateRanges", "Update Ranges"))), 
-          column(6, downloadButton('exportRanges', 'Download Ranges'), br(), br())
+                           actionButton("updateRanges", "Update Ranges")), br(),
+          downloadButton('exportRanges', 'Download Ranges'), br(), br())
         ),
         fluidRow(
           column(12,
@@ -168,6 +168,7 @@ shinyUI(fluidPage(
             fluidRow(
               column(4, colourInput("highlightColor", "Highlighted", "#377EB8"))
             ), hr(), br(), br(),
+
 
             h4("Session Options"),
             strong("Save Session"),

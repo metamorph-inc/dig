@@ -230,29 +230,29 @@ shinyServer(function(input, output, clientData, session) {
         rng <- c(0,1)
         
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          suppressWarnings(stdDev <- sd(data[[nname]]))
-          suppressWarnings(mean <- mean(data[[nname]]))
+          suppressWarnings(stdDev <- sd(data[[nname]], na.rm = TRUE))
+          suppressWarnings(mean <- mean(data[[nname]], na.rm = TRUE))
           rng[1] <- round(mean - as.integer(input$numDevs)*stdDev, 6)
           rng[2] <- round(mean + as.integer(input$numDevs)*stdDev, 6)
           if(varClass[column] == "integer"){
-            rng[1] <- round(rng[1])
             rng[2] <- round(rng[2])
           }
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
           inRange <- above & below
+          data <- subset(data, inRange)
         }
-        data <- subset(data, inRange)
+        
       }
     }
     
-    # if(input$removeMissing){
-    #   for(column in 1:length(varNames)) {
-    #     nname = varNames[column]
-    #     inRange <- !is.na(data[[nname]])
-    #     data <- subset(data, inRange)
-    #   }
-    # }
+    if(input$removeMissing){
+      for(column in 1:length(varNames)) {
+        nname = varNames[column]
+        inRange <- !is.na(data[[nname]])
+        data <- subset(data, inRange)
+      }
+    }
     
     data
   })
@@ -478,7 +478,7 @@ shinyServer(function(input, output, clientData, session) {
             inRange <- (data[[nname]] %in% rng)
           }
         }
-        if(input$removeMissing == FALSE) {inRange <- inRange | is.na(data[[nname]])}
+        inRange <- inRange | is.na(data[[nname]])
         data <- subset(data, inRange)
       }
       
@@ -750,7 +750,7 @@ shinyServer(function(input, output, clientData, session) {
   infoTable <- eventReactive(colorData(), {
     tb <- table(factor(colorData()$color, c(input$midColor, input$minColor, input$highlightColor, input$maxColor, input$normColor)))
     if (input$colType == 'Max/Min') {
-      paste0("Total Points: ", nrow(raw_plus()),
+      paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", sum(tb[[input$minColor]], tb[[input$midColor]], tb[[input$maxColor]], tb[[input$normColor]]),
              "\nBelow Points: ", tb[[input$minColor]],
@@ -759,24 +759,34 @@ shinyServer(function(input, output, clientData, session) {
       )
     } 
     else if(input$colType == 'Discrete') {
-      paste0("Total Points: ", nrow(raw_plus()),
+      tb <- table(factor(colorData()$color, palette()))
+      d_vars <- names(table(raw[input$colVarFactor]))
+      output_string <- paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nVisible Points: ", sum(tb[["#2ECC71"]], tb[["#F1C40F"]], tb[["#E74C3C"]], tb[["black"]]),
-             "\nGreen Points: ", tb[["#2ECC71"]],
-             "\nYellow Points: ", tb[["#F1C40F"]],
-             "\nRed Points: ", tb[["#E74C3C"]],
-             "\nBlue Points: ", tb[["#377EB8"]]
-      )
+             "\nVisible Points: ", sum(tb[[palette()[1]]], 
+                                       tb[[palette()[2]]], 
+                                       tb[[palette()[3]]], 
+                                       tb[[palette()[4]]], 
+                                       tb[[palette()[5]]], 
+                                       tb[[palette()[6]]], 
+                                       tb[[palette()[7]]], 
+                                       tb[[palette()[8]]], 
+                                       tb[[palette()[9]]]))
+      for(i in 1:length(d_vars)){
+             output_string <- paste0(output_string, 
+                                     "\n", d_vars[i]," Points: ", tb[[palette()[i]]])
+      }
+      output_string
     }
     else if(input$colType == 'Highlighted') {
-      paste0("Total Points: ", nrow(raw_plus()),
+      paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", sum(tb[[input$highlightColor]], tb[[input$normColor]]),
              "\nHighlighted Points: ", tb[[input$highlightColor]]
       )
     }
     else{
-      paste0("Total Points: ", nrow(raw_plus()),
+      paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", tb[[input$normColor]]
       )

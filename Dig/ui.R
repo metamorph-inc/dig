@@ -155,9 +155,9 @@ shinyUI(fluidPage(
               column(4, colourInput("normColor", "Normal", "black"))
             ),
             fluidRow(
-              column(4, colourInput("minColor", "Min", "#F1C40F")),
-              column(4, colourInput("midColor", "In Between", "#2ECC71")),
-              column(4, colourInput("maxColor", "Max", "#E74C3C"))
+              column(4, colourInput("maxColor", "Worst", "#E74C3C")),
+              column(4, colourInput("midColor", "In Between", "#F1C40F")),
+              column(4, colourInput("minColor", "Best", "#2ECC71"))
             ),
             #h5("Highlighted", align = "center"),
             fluidRow(

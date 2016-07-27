@@ -753,9 +753,9 @@ shinyServer(function(input, output, clientData, session) {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
              "\nVisible Points: ", sum(tb[[input$minColor]], tb[[input$midColor]], tb[[input$maxColor]], tb[[input$normColor]]),
-             "\nBelow Points: ", tb[[input$minColor]],
-             "\nIn Range Points: ", tb[[input$midColor]],
-             "\nAbove Points: ", tb[[input$maxColor]]
+             "\nWorst Points: ", tb[[input$maxColor]],
+             "\nIn Between Points: ", tb[[input$midColor]],
+             "\nBest Points: ", tb[[input$minColor]]
       )
     } 
     else if(input$colType == 'Discrete') {

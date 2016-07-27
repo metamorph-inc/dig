@@ -127,11 +127,9 @@ shinyUI(fluidPage(
           wellPanel(
             h4("Data Processing Options"),
             checkboxInput("removeMissing", "Remove Incomplete Rows", value = TRUE),
-            fluidRow(
-              column(4, checkboxInput("removeOutliers", "Remove Outliers", value = FALSE)),
-              column(6, conditionalPanel("input.removeOutliers == '1'",
-                               selectInput("numDevs", HTML("&sigma;:"), choices = seq(5), selected = 2)
-              ))
+            checkboxInput("removeOutliers", "Remove Outliers", value = FALSE),
+            conditionalPanel("input.removeOutliers == '1'",
+                             sliderInput("numDevs", HTML("&sigma;:"), min = 1, max = 11, step = 0.1, value = 2)
             ),
             hr(),
             
@@ -148,7 +146,6 @@ shinyUI(fluidPage(
             checkboxInput("autoInfo", "Info Pane", value = TRUE),
             checkboxInput("autoData", "Data Table Tab", value = TRUE),
             checkboxInput("autoRange", "Ranges Tab", value = TRUE),
-            br(),
             hr(),
             
             h4("Session Options"),
@@ -158,7 +155,6 @@ shinyUI(fluidPage(
             br(), br(),
             strong("Load Session"), br(),
             actionButton('importSession', 'Choose File'),
-            br(), br(), br(),
             hr(),
             
             h4("About"),

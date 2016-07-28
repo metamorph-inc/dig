@@ -67,6 +67,7 @@ shinyServer(function(input, output, clientData, session) {
           
           current <- colnames(filedata())[i]
           column <- as.numeric(gsub("[^0-9]", "", current)) #Extract number
+          # print(paste("Current:",current, "Column:",column))
           
           if(!is.null(filedata()[current]) & !is.na(column)){
             if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
@@ -116,19 +117,26 @@ shinyServer(function(input, output, clientData, session) {
                 )
               }
               else {
-                if (current == 'plot_brush'){
-                  parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
-                  trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-                  
+                if (current == 'normColor' | current == 'minColor' | current == 'midColor' | current == 'maxColor' | current == "highlightColor") {
+                  print(paste("Current:", current))
+                  trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
+                  updateColourInput(session, current, value = trimmedValue)
                 }
-                else{
-                  parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
-                  trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-                  updateSelectInput(
-                    session,
-                    current,
-                    selected = trimmedValue
-                  )
+                else {
+                  if (current == 'plot_brush'){
+                    parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                    trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+                    
+                  }
+                  else{
+                    parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                    trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+                    updateSelectInput(
+                      session,
+                      current,
+                      selected = trimmedValue
+                    )
+                  }
                 }
               }
             }
@@ -191,8 +199,11 @@ shinyServer(function(input, output, clientData, session) {
     autoInfo <- c('autoInfo', input$autoInfo)
     autoData <- c('autoData', input$autoData)
     autoRange <- c('autoRange', input$autoRange)
-    
-    # TODO: Need to add ability to save color choices here
+    normColor <- c('normColor', input$normColor)
+    minColor <- c('minColor', input$minColor)
+    midColor <- c('midColor', input$midColor)
+    maxColor <- c('maxColor', input$maxColor)
+    highlightColor <- c('highlightColor', input$highlightColor)
     
     # TODO: Need to add ability to save plot brush on single plot tab
     #plot_brush <- c('plot_brush', toString(input$plot_brush))
@@ -203,7 +214,8 @@ shinyServer(function(input, output, clientData, session) {
                      removeMissing, removeOutliers, numDevs,
                      autoRender, trendLines, upperPanel,
                      pointStyle, pointSize,
-                     autoInfo, autoData, autoRange)
+                     autoInfo, autoData, autoRange,
+                     normColor, minColor, midColor, maxColor, highlightColor)
     presets
   })
   

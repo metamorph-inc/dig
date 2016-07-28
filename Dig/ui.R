@@ -96,10 +96,9 @@ shinyUI(fluidPage(
     tabPanel("Data Table",
       wellPanel(
         fluidRow(
-          br(), 
           conditionalPanel(condition = "input.autoData == false", 
                            actionButton("updateDataTable", "Update Data Table")
-                           ), br(), br()
+                           , br(), br())
         ),
         fluidRow(
           dataTableOutput(outputId="table")
@@ -109,9 +108,8 @@ shinyUI(fluidPage(
     tabPanel("Ranges",
      wellPanel(
         fluidRow(
-          br(), 
           column(6, conditionalPanel(condition = "input.autoRange == false",
-                           actionButton("updateRanges", "Update Ranges")), br(),
+                           actionButton("updateRanges", "Update Ranges"), br(), br()),
           downloadButton('exportRanges', 'Download Ranges'), br(), br())
         ),
         fluidRow(
@@ -150,7 +148,6 @@ shinyUI(fluidPage(
             hr(),
 
             h4("Color Options"),
-            #h5("Min/Max", align = "center"),
             fluidRow(
               column(4, colourInput("normColor", "Normal", "black"))
             ),
@@ -162,9 +159,12 @@ shinyUI(fluidPage(
             #h5("Highlighted", align = "center"),
             fluidRow(
               column(4, colourInput("highlightColor", "Highlighted", "#377EB8"))
-            ), hr(), br(), br(),
+            ), hr(),
 
 
+            actionButton("resetSettings", "Reset Settings"), br(),
+            hr(),
+            
             h4("Session Options"),
             strong("Save Session"),
             textInput("sessionName", NULL, placeholder = "Enter a filename..."),
@@ -175,8 +175,8 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.4"),
-            p(strong("Date:"), "7/27/2016"),
+            p(strong("Version:"), "v1.2.5"),
+            p(strong("Date:"), "7/28/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )

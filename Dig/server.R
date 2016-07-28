@@ -313,18 +313,31 @@ shinyServer(function(input, output, clientData, session) {
   resetPlotOptions <- observeEvent(input$resetOptions, {
     print("In resetPlotOptions()")
     updateSelectInput(session, "display", selected = varRange()[c(1,2)])
-    updateCheckboxInput(session, "color", value = FALSE)
-    # updateSelectInput(session, "colType", selected = "Max/Min")
+    updateSelectInput(session, "colType", selected = "None")
   })
 
   
-  # resetViewerOptions <- observeEvent(input$resetSettings, {
-  #   print("In resetViewerSettings()")
-  #   updateCheckboxInput(session, "autoRender", value = TRUE)
-  #   updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
-  #   updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
-  # })
-  
+  resetViewerOptions <- observeEvent(input$resetSettings, {
+    print("In resetViewerSettings()")
+    # Processing
+    updateCheckboxInput(session, "removeMissing", value = TRUE)
+    updateCheckboxInput(session, "removeOutliers", value = FALSE)
+    # Render
+    updateCheckboxInput(session, "autoRender", value = TRUE)
+    #updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = 1)
+    #updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = 1)
+    # Automatically update
+    updateCheckboxInput(session, "autoInfo", value = TRUE)
+    updateCheckboxInput(session, "autoData", value = TRUE)
+    updateCheckboxInput(session, "autoRange", value = TRUE)
+    # Color
+    updateColourInput(session, "normColor", "Normal", "black")
+    updateColourInput(session, "maxColor", "Worst", "#E74C3C")
+    updateColourInput(session, "midColor", "In Between", "#F1C40F")
+    updateColourInput(session, "minColor", "Best", "#2ECC71")
+    updateColourInput(session, "highlightColor", "Highlighted", "#377EB8")
+  })
+
   print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
   
   

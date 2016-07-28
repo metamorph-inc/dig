@@ -35,13 +35,6 @@ shinyUI(fluidPage(
                 condition = "input.colType == 'Discrete'",
                 selectInput("colVarFactor", "Colored Variable:", c()),
                 htmlOutput("colorLegend")
-                # conditionalPanel(
-                #   condition = "input.colVarFactor == 'designVariable.ResinName' 
-                #              | input.colVarFactor == 'designVariable.IEC_WindClass' 
-                #              | input.colVarFactor == 'designVariable.FabricName'",
-                #   radioButtons("radioF", NULL, c("Maximize" = "max", "Minimize" = "min"), selected = "max"), br(),
-                #   sliderInput("colFSlider", label = "", min = 0, max = 1, value = c(0,1), step = 1)
-                # )
               )
               
             ,  hr(),
@@ -134,6 +127,8 @@ shinyUI(fluidPage(
             
             h4("Render Options"),
             checkboxInput("autoRender", "Automatically Rerender Plot", value = TRUE),
+            checkboxInput("trendLines", "Overlay Trendline(s)", value = FALSE),
+            checkboxInput("upperPanel", "Display Upper Panel", value = FALSE),
             strong("Data Point Style"),
             fluidRow(
               column(4, radioButtons("pointStyle", NULL, c("Normal" = 1,"Filled" = 19))),

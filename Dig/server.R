@@ -73,26 +73,11 @@ shinyServer(function(input, output, clientData, session) {
             if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
               parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
               trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-              updateSelectInput(
-                session,
-                current,
-                selected = trimmedValue
-              )
+              updateSelectInput(session, current, selected = trimmedValue)
             }
             else {
-              if(varClass[column] == "numeric") {
-                updateSliderInput(
-                  session,
-                  current,
-                  value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-                )
-              }
-              if (varClass[column] == "integer") {
-                updateSliderInput(
-                  session,
-                  current,
-                  value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-                )
+              if(varClass[column] == "numeric" | varClass[column] == "integer") {
+                updateSliderInput(session, current, value = as.numeric(unlist(strsplit(toString(filedata()[current]), ", "))))
               }
             }
           }
@@ -110,25 +95,20 @@ shinyServer(function(input, output, clientData, session) {
             else {
               if (current == 'removeMissing' | current == 'removeOutliers' | current == 'autoRender' | current == 'trendLines' | current == 'upperPanel' | current == 'autoInfo' | current == 'autoData' | current == 'autoRange'){
                 trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
-                updateCheckboxInput(
-                  session,
-                  current,
-                  value = as.logical(trimmedValue)
-                )
+                updateCheckboxInput(session, current, value = as.logical(trimmedValue))
               }
               else {
                 if (current == 'normColor' | current == 'minColor' | current == 'midColor' | current == 'maxColor' | current == "highlightColor") {
-                  print(paste("Current:", current))
+                  # print(paste("Current:", current))
                   trimmedValue <- gsub("^\\s+|\\s+$", "", filedata()[current])
                   updateColourInput(session, current, value = trimmedValue)
                 }
                 else {
-                  if (current == 'plot_brush'){
-                    parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
-                    trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
-                    
+                  if (current == 'plotBrush'){
+                    # parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
+                    # trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
                   }
-                  else{
+                  else {
                     parsedValue <- as.list(strsplit(toString(filedata()[current]), ", ")[[1]])
                     trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
                     updateSelectInput(
@@ -206,11 +186,11 @@ shinyServer(function(input, output, clientData, session) {
     highlightColor <- c('highlightColor', input$highlightColor)
     
     # TODO: Need to add ability to save plot brush on single plot tab
-    #plot_brush <- c('plot_brush', toString(input$plot_brush))
+    plotBrush <- c('plotBrush', toString(input$plot_brush))
     
     presets <- cbind(presets, display, 
                      colType, colVarNum, colVarFac, varMinMax, colSlider, 
-                     xInput, yInput, 
+                     xInput, yInput, plotBrush,
                      removeMissing, removeOutliers, numDevs,
                      autoRender, trendLines, upperPanel,
                      pointStyle, pointSize,
@@ -908,20 +888,22 @@ shinyServer(function(input, output, clientData, session) {
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- function() {
     data <- isolate(filterData())
-    min <- min(data[[paste(input$colVarNum)]], na.rm=TRUE)
-    max <- max(data[[paste(input$colVarNum)]], na.rm=TRUE)
+    variable <- isolate(input$colVarNum)
+    print(paste("in updateColorSlider()",variable))
+    min <- min(data[[paste(variable)]], na.rm=TRUE)
+    max <- max(data[[paste(variable)]], na.rm=TRUE)
     # print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
-    # print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
-    thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33, na.rm=TRUE)
-    sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66, na.rm=TRUE)
+    # print(paste("In updateColorSlider(). colVarNum:", variable, min, max))
+    thirtythree <- quantile(data[[paste(variable)]], 0.33, na.rm=TRUE)
+    sixtysix <- quantile(data[[paste(variable)]], 0.66, na.rm=TRUE)
     
-    absMin <- as.numeric(unname(rawAbsMin()[paste(input$colVarNum)]))
-    absMax <- as.numeric(unname(rawAbsMax()[paste(input$colVarNum)]))
+    absMin <- as.numeric(unname(rawAbsMin()[paste(variable)]))
+    absMax <- as.numeric(unname(rawAbsMax()[paste(variable)]))
     absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
     # print(paste("class(max)", class(max), "class(min)", class(min)))
     # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
     # print(paste(absMin, min, max, absMax))
-    if(varClass[[input$colVarNum]] == "numeric") {
+    if(varClass[[variable]] == "numeric") {
       # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
@@ -932,7 +914,7 @@ shinyServer(function(input, output, clientData, session) {
                         value = c(unname(thirtythree), unname(sixtysix))
       )
     }
-    if(varClass[[input$colVarNum]] == "integer") {
+    if(varClass[[variable]] == "integer") {
       # print("In updated slider: integer")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
@@ -942,6 +924,7 @@ shinyServer(function(input, output, clientData, session) {
                         value = c(floor(thirtythree), ceiling(sixtysix))
       )
     }
+    print("updateColorSlider() done.")
   }
 
   updateXSlider <- observeEvent(input$updateX, {

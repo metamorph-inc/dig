@@ -8,7 +8,7 @@ palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
 newColSliderValues <- NULL
-skip <- FALSE
+newColVarNum <- TRUE
 
 
 shinyServer(function(input, output, clientData, session) {
@@ -92,15 +92,6 @@ shinyServer(function(input, output, clientData, session) {
             if(current == 'colSlider'){
               print("Updated colslider from csv")
               newColSliderValues <<- as.numeric(unlist(strsplit(toString(filedata()[current]), ", ")))
-              skip <<- TRUE
-              updateSliderInput(
-                session,
-                current,
-                value = newColSliderValues
-              )
-              if(oldColVarNum == input$colVarNum){
-                skip <<- FALSE
-              }
             }
             else {
               if (current == 'removeMissing' | current == 'removeOutliers' | current == 'autoRender' | current == 'trendLines' | current == 'upperPanel' | current == 'autoInfo' | current == 'autoData' | current == 'autoRange'){
@@ -131,6 +122,9 @@ shinyServer(function(input, output, clientData, session) {
               }
             }
           }
+        }
+        if(oldColVarNum == input$colVarNum){
+          updateColorSlider()
         }
       })
     }
@@ -908,55 +902,62 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
-  # UI Adjustments -----------------------------------------------------------
-  updateColorSlider <- observeEvent(input$colVarNum, {
-    data <- filterData()
-    variable <- input$colVarNum
+  observe({
     if(input$colVarNum != ""){
-        print(paste("in updateColorSlider()",variable))
-        min <- min(data[[paste(variable)]], na.rm=TRUE)
-        max <- max(data[[paste(variable)]], na.rm=TRUE)
-        # print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
-        # print(paste("In updateColorSlider(). colVarNum:", variable, min, max))
-        thirtythree <- quantile(data[[variable]], 0.33, na.rm=TRUE)
-        sixtysix <- quantile(data[[variable]], 0.66, na.rm=TRUE)
-        absMin <- as.numeric(unname(rawAbsMin()[variable]))
-        absMax <- as.numeric(unname(rawAbsMax()[variable]))
-        absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
-        # print(paste("class(max)", class(max), "class(min)", class(min)))
-        # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
-        # print(paste(absMin, min, max, absMax))
-        if(varClass[[variable]] == "numeric") {
-          # print("In updated slider: numeric")
-          # if (absMax == absMin) {absMax <- (absMax + 1)}
-          updateSliderInput(session,
-                            "colSlider",
-                            step = signif(absStep, digits = 4),
-                            min = signif(absMin-absStep*10, digits = 4),
-                            max = signif(absMax+absStep*10, digits = 4),
-                            value = c(unname(thirtythree), unname(sixtysix))
-          )
-        }
-        if(varClass[[variable]] == "integer") {
-          # print("In updated slider: integer")
-          # if (absMax == absMin) {absMax <- (absMax + 1)}
-          updateSliderInput(session,
-                            "colSlider",
-                            min = absMin,
-                            max = absMax,
-                            value = c(floor(unname(thirtythree)), ceiling(unname(sixtysix)))
-          )
-        }
-        if(skip){
-          updateSliderInput(session,
-                            "colSlider",
-                            value = newColSliderValues
-          )
-          skip <<- FALSE
-        }
-        print("updateColorSlider() done.")
+      updateColorSlider()
     }
   })
+  
+  
+  # UI Adjustments -----------------------------------------------------------
+  updateColorSlider <- function(...) {
+    data <- filterData()
+    variable <- input$colVarNum
+    print(paste("in updateColorSlider()",variable))
+    min <- min(data[[paste(variable)]], na.rm=TRUE)
+    max <- max(data[[paste(variable)]], na.rm=TRUE)
+    # print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
+    # print(paste("In updateColorSlider(). colVarNum:", variable, min, max))
+    thirtythree <- quantile(data[[variable]], 0.33, nan.rm=TRUE)
+    sixtysix <- quantile(data[[variable]], 0.66, na.rm=TRUE)
+    absMin <- as.numeric(unname(rawAbsMin()[variable]))
+    absMax <- as.numeric(unname(rawAbsMax()[variable]))
+    absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
+    # print(paste("class(max)", class(max), "class(min)", class(min)))
+    # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
+    # print(paste(absMin, min, max, absMax))
+    if(varClass[[variable]] == "numeric") {
+      # print("In updated slider: numeric")
+      # if (absMax == absMin) {absMax <- (absMax + 1)}
+      updateSliderInput(session,
+                        "colSlider",
+                        step = signif(absStep, digits = 4),
+                        min = signif(absMin-absStep*10, digits = 4),
+                        max = signif(absMax+absStep*10, digits = 4),
+                        value = c(unname(thirtythree), unname(sixtysix))
+      )
+    }
+    if(varClass[[variable]] == "integer") {
+      # print("In updated slider: integer")
+      # if (absMax == absMin) {absMax <- (absMax + 1)}
+      updateSliderInput(session,
+                        "colSlider",
+                        min = absMin,
+                        max = absMax,
+                        value = c(floor(unname(thirtythree)), ceiling(unname(sixtysix)))
+      )
+    }
+    if(!is.null(newColSliderValues)){
+      updateSliderInput(session,
+                        "colSlider",
+                        value = newColSliderValues
+      )
+      newColSliderValues <<- NULL
+    }
+    print("updateColorSlider() done.")
+  }
+  
+
   
 
   updateXSlider <- observeEvent(input$updateX, {

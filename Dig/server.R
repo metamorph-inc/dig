@@ -232,10 +232,13 @@ shinyServer(function(input, output, clientData, session) {
         if((varClass[column]=="numeric" | varClass[column]=="integer")) {
           suppressWarnings(stdDev <- sd(data[[nname]], na.rm = TRUE))
           suppressWarnings(mean <- mean(data[[nname]], na.rm = TRUE))
-          rng[1] <- round(mean - as.integer(input$numDevs)*stdDev, 6)
-          rng[2] <- round(mean + as.integer(input$numDevs)*stdDev, 6)
+          rng[1] <- round(mean - as.numeric(input$numDevs)*stdDev, 6)
+          rng[2] <- round(mean + as.numeric(input$numDevs)*stdDev, 6)
           if(varClass[column] == "integer"){
             rng[2] <- round(rng[2])
+          }
+          if(is.na(stdDev)){
+            rng <- c(mean, mean)
           }
           above <- (data[[nname]] >= rng[1])
           below <- (data[[nname]] <= rng[2])
@@ -501,11 +504,11 @@ shinyServer(function(input, output, clientData, session) {
       print(paste("Coloring Data:", name, bottom, top))
       data$color[(data[[name]] >= bottom) & (data[[name]] <= top)] <- input$midColor
       if (input$radio == "max") {
-        data$color[data[[name]] < bottom] <- input$maxColor
-        data$color[data[[name]] > top] <- input$minColor
-      } else {
         data$color[data[[name]] < bottom] <- input$minColor
         data$color[data[[name]] > top] <- input$maxColor
+      } else {
+        data$color[data[[name]] < bottom] <- input$maxColor
+        data$color[data[[name]] > top] <- input$minColor
       }
      } 
      else {

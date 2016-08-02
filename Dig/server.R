@@ -8,7 +8,6 @@ palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
 newColSliderValues <- NULL
-newColVarNum <- TRUE
 
 
 shinyServer(function(input, output, clientData, session) {
@@ -725,17 +724,42 @@ shinyServer(function(input, output, clientData, session) {
     num_vars <- length(input$display)
     x_pos <- num_vars*input$pairs_click$x
     y_pos <- num_vars*input$pairs_click$y
+    print(paste0("X: ", round(x_pos, 2), " Y: ", round(y_pos,2)))
     x_var <- NULL
     y_var <- NULL
-    a <- 0.1
-    b <- 0.9
-    c <- 0.05
-    limits <- c(a, b+a)
+    margin <- 0.1
+    plot <- 0.91
+    buffer <- 0.05
+    if(num_vars > 6){
+      margin <- 0
+      plot <- 0.9
+      buffer <- 0.1
+    }
+    if(num_vars > 11){
+      margin <- -0.5
+      buffer <- 0.2
+    }
+    if(num_vars > 12){
+      buffer <- 0.15
+      margin <- -0.6
+    }
+    if(num_vars > 18){
+      margin <- -1.51
+      buffer <- 0.25
+    }
+    
+    xlimits <- c(margin, plot+margin)
+    ylimits <- xlimits
+    if(num_vars > 18){
+      ylimits <- c(-2.5, -1.4)
+    }
+    
+    
     for(i in 1:(num_vars-1)){
-      if(findInterval(x_pos, limits) == 1){
+      if(findInterval(x_pos, xlimits) == 1){
         x_var <- input$display[i]
       }
-      if(findInterval(y_pos, limits) == 1){
+      if(findInterval(y_pos, ylimits) == 1){
         y_var <- rev(input$display)[i]
       }
       if(!is.null(x_var) & !is.null(y_var)){
@@ -744,12 +768,18 @@ shinyServer(function(input, output, clientData, session) {
         updateSelectInput(session, "yInput", selected = y_var)
         break
       }
-      limits <- limits + b + c
+      xlimits <- xlimits + plot + buffer
+      if(num_vars > 18){
+        ylimits <- ylimits + 0.9 + 0.35
+      }
+      else {
+        ylimits <- xlimits        
+      }
     }
-    print("Printing vars")
-    print(x_var)
-    print(y_var)
-    print("Done printing vars")
+    # print("Printing vars")
+    # print(x_var)
+    # print(y_var)
+    # print("Done printing vars")
   })
   
   
@@ -916,18 +946,12 @@ shinyServer(function(input, output, clientData, session) {
     print(paste("in updateColorSlider()",variable))
     min <- min(data[[paste(variable)]], na.rm=TRUE)
     max <- max(data[[paste(variable)]], na.rm=TRUE)
-    # print(paste("colSlider:", isolate(input$colSlider[1]), isolate(input$colSlider[2])))
-    # print(paste("In updateColorSlider(). colVarNum:", variable, min, max))
     thirtythree <- quantile(data[[variable]], 0.33, nan.rm=TRUE)
     sixtysix <- quantile(data[[variable]], 0.66, na.rm=TRUE)
     absMin <- as.numeric(unname(rawAbsMin()[variable]))
     absMax <- as.numeric(unname(rawAbsMax()[variable]))
     absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
-    # print(paste("class(max)", class(max), "class(min)", class(min)))
-    # print(paste("class(absMax)", class(absMax), "class(absMin)", class(absMin), "class(absStep)", class(absStep)))
-    # print(paste(absMin, min, max, absMax))
     if(varClass[[variable]] == "numeric") {
-      # print("In updated slider: numeric")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
                         "colSlider",
@@ -938,7 +962,6 @@ shinyServer(function(input, output, clientData, session) {
       )
     }
     if(varClass[[variable]] == "integer") {
-      # print("In updated slider: integer")
       # if (absMax == absMin) {absMax <- (absMax + 1)}
       updateSliderInput(session,
                         "colSlider",
@@ -947,6 +970,7 @@ shinyServer(function(input, output, clientData, session) {
                         value = c(floor(unname(thirtythree)), ceiling(unname(sixtysix)))
       )
     }
+    
     if(!is.null(newColSliderValues)){
       updateSliderInput(session,
                         "colSlider",

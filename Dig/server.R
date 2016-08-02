@@ -1,5 +1,4 @@
 library(shiny)
-library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -9,7 +8,8 @@ palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
 newColSliderValues <- NULL
-
+oldColVarNum <- NULL
+skip <- FALSE
 
 shinyServer(function(input, output, clientData, session) {
   # Get Data -----------------------------------------------------------------
@@ -62,7 +62,7 @@ shinyServer(function(input, output, clientData, session) {
   #Changes values based on user uploaded csv file
   observeEvent(filedata() , {
     
-    oldColVarNum <- input$colVarNum
+    oldColVarNum <<- input$colVarNum
     
     if(!is.null(filedata())){
       
@@ -123,23 +123,10 @@ shinyServer(function(input, output, clientData, session) {
             }
           }
         }
-        if(oldColVarNum == input$colVarNum){
-          updateColorSlider()
-        }
       })
     }
   })
   
-  updateSliderFromCSV <- reactive({
-    sliderValues <- newColSliderValues
-    if(!is.null(newColSliderValues)){
-      updateSliderInput(
-        session,
-        "colSlider",
-        value = c(newColSliderValues[1], newColSliderValues[2])
-      )
-    }
-  })
   
   
   
@@ -238,7 +225,7 @@ shinyServer(function(input, output, clientData, session) {
     }
   )
   
-  raw_plus <- reactive({
+  raw_rm_outliers <- eventReactive(input$removeOutliers,{
     data <- raw
     
     if(input$removeOutliers){
@@ -260,9 +247,13 @@ shinyServer(function(input, output, clientData, session) {
           inRange <- above & below | is.na(data[[nname]])
           data <- subset(data, inRange)
         }
-        
       }
     }
+    data
+  })
+  
+  raw_rm_missing <- eventReactive(input$removeMissing, {
+    data <- raw 
     
     if(input$removeMissing){
       for(column in 1:length(varNames)) {
@@ -271,8 +262,11 @@ shinyServer(function(input, output, clientData, session) {
         data <- subset(data, inRange)
       }
     }
-    
     data
+  })
+  
+  raw_plus <- reactive({
+    data <- merge.data.frame(raw_rm_missing(), raw_rm_outliers())
   })
 
   # Pre-processing -----------------------------------------------------------
@@ -658,10 +652,9 @@ shinyServer(function(input, output, clientData, session) {
     vars
   })
   
-  pairsTrendline <- reactive({
+  pairsTrendline <- function(...){
     if(input$upperPanel) {
       if(input$trendLines) {
-        #ggprint(ggplot(pairs_data(), aes(pairs_vars())))
         pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = panel.smooth, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
       else {
@@ -676,7 +669,7 @@ shinyServer(function(input, output, clientData, session) {
         pairs(pairs_data()[pairs_vars()], upper.panel = NULL, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
     }
-  })
+  }
   
   output$pairsPlot <- renderPlot({
     
@@ -934,17 +927,18 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
-  observeEvent(input$colVarNum, {
-    if(input$colVarNum != ""){
+  observe({
+    if(input$colVarNum != "")
       updateColorSlider()
-    }
   })
   
   
   # UI Adjustments -----------------------------------------------------------
-  updateColorSlider <- function(...) {
+  updateColorSlider <- function(...){
     data <- filterData()
     variable <- input$colVarNum
+    print(paste0("Value of remove outliers: ", input$removeOutliers))
+    print(paste0("Value of newColorSliderVals: ", unlist(newColSliderValues)))
     print(paste("in updateColorSlider()",variable))
     min <- min(data[[paste(variable)]], na.rm=TRUE)
     max <- max(data[[paste(variable)]], na.rm=TRUE)

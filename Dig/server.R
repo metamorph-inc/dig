@@ -1,4 +1,5 @@
 library(shiny)
+library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -660,6 +661,7 @@ shinyServer(function(input, output, clientData, session) {
   pairsTrendline <- reactive({
     if(input$upperPanel) {
       if(input$trendLines) {
+        #ggprint(ggplot(pairs_data(), aes(pairs_vars())))
         pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = panel.smooth, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
       else {
@@ -932,7 +934,7 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
-  observe({
+  observeEvent(input$colVarNum, {
     if(input$colVarNum != ""){
       updateColorSlider()
     }

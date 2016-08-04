@@ -3,7 +3,6 @@ require(shinyjs)
 
 # Define UI for PET Design Space Browser application
 shinyUI(fluidPage(
-
   #  Application title
   titlePanel("PET Design Space Browser"),
   #verbatimTextOutput("debug"),

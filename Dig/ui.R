@@ -179,7 +179,16 @@ shinyUI(fluidPage(
     ),
   id = "inTabset"),
   h3("Filter Data:"),
-  actionButton("resetSliders", "Reset Sliders"), br(), br(),
+  fluidRow(
+    column(2,
+      actionButton("resetSliders", "Reset Filters")
+    ),
+    column(6,
+      tags$div(title = "Sticky Filters try to preserve their settings when removing/adding outliers or missing data rows.", 
+      checkboxInput("stickyFilters", strong("Sticky Filters")))
+    ),
+      br(), br()
+  ),
   uiOutput("enums"),
   uiOutput("sliders"),
   h3("Constants:"),

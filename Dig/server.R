@@ -111,7 +111,7 @@ shinyServer(function(input, output, clientData, session) {
             newColSliderValues <<- as.numeric(unlist(strsplit(toString(filedata[[current]]), ", ")))
           }
           else {
-            if (current = 'stickyFilters' | current == 'removeMissing' | current == 'removeOutliers' | current == 'autoRender' | current == 'trendLines' | current == 'upperPanel' | current == 'autoInfo' | current == 'autoData' | current == 'autoRange'){
+            if (current == 'stickyFilters' | current == 'removeMissing' | current == 'removeOutliers' | current == 'autoRender' | current == 'trendLines' | current == 'upperPanel' | current == 'autoInfo' | current == 'autoData' | current == 'autoRange'){
               trimmedValue <- gsub("^\\s+|\\s+$", "", filedata[[current]])
               updateCheckboxInput(session, current, value = as.logical(trimmedValue))
             }

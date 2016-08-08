@@ -890,7 +890,7 @@ shinyServer(function(input, output, clientData, session) {
   
   output$exportRanges <- downloadHandler(
     filename = function() { paste('ranges-', Sys.Date(), '.csv', sep='') },
-    content = function(file) { write.csv(t(summary(filterData())), file) }
+    content = function(file) { write.csv(do.call(rbind, lapply(filterData(), summary)), file) }
   )
   
   output$exportPlot <- downloadHandler(
@@ -939,7 +939,7 @@ shinyServer(function(input, output, clientData, session) {
   
   output$ranges <- renderPrint({
     if(input$autoRange == TRUE){
-      t(summary(filterData()))
+      do.call(rbind, lapply(filterData(), summary))
     }
     else {
       slowRangeData()

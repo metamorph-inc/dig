@@ -148,7 +148,7 @@ shinyServer(function(input, output, clientData, session) {
   output$exportSession <- downloadHandler(
     filename = function() { 
       if (input$sessionName == ""){
-        paste0('session_', Sys.Date(), '.csv')
+        paste0('session_', Sys.Date(), Sys.time(), '.csv')
       }
       else {
         paste0(input$sessionName, '.csv')
@@ -311,27 +311,29 @@ shinyServer(function(input, output, clientData, session) {
   output$enums <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
-        currentVal <- input[[paste0('inp', column)]]
+        isolate(currentVal <- input[[paste0('inp', column)]])
         items <- names(table(raw_plus()[varNames[column]]))
         if (varClass[column] == "factor" & length(items) > 1) {
-          if(!is.null(currentVal) & length(currentVal) != length(items) & input$stickyFilters){
-            column(2, selectInput(paste0('inp', column),
-                                  varNames[column],
-                                  multiple = TRUE,
-                                  selectize = FALSE,
-                                  choices = items,
-                                  selected = currentVal)
-            )
-          }
-          else{
-            column(2, selectInput(paste0('inp', column),
-                               varNames[column],
-                               multiple = TRUE,
-                               selectize = FALSE,
-                               choices = items,
-                               selected = items)
-            )
-          }
+          isolate({
+            if(!is.null(currentVal) & length(currentVal) != length(items) & input$stickyFilters){
+              column(2, selectInput(paste0('inp', column),
+                                    varNames[column],
+                                    multiple = TRUE,
+                                    selectize = FALSE,
+                                    choices = items,
+                                    selected = currentVal)
+              )
+            }
+            else{
+              column(2, selectInput(paste0('inp', column),
+                                 varNames[column],
+                                 multiple = TRUE,
+                                 selectize = FALSE,
+                                 choices = items,
+                                 selected = items)
+              )
+            }
+          })
         }
       })
     )
@@ -340,68 +342,94 @@ shinyServer(function(input, output, clientData, session) {
   output$sliders <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
-        currentVal <- input[[paste0('inp', column)]]
+        isolate(currentVal <- input[[paste0('inp', column)]])
         
-        if(varClass[column] == "numeric") {
-          max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
-          min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
-          diff <- (max-min)
-          # print(paste(column, "min", min, "max", max, "diff", diff))
-          if (diff != 0) {
-            #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax()[varNames[column]]))))
-            step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
-            # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
+        max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+        min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
+        
+        isolate({
+        
+          if(varClass[column] == "numeric") {
             
-            if(!is.null(currentVal) & input$stickyFilters){
-
-                sliderChange <- currentVal %in%  c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4))
-                min = signif(min-step*10, digits = 4)
-                max = signif(max+step*10, digits = 4)
-                if(sliderChange[1] & sliderChange[2]){
+            diff <- (max-min)
+            # print(paste(column, "min", min, "max", max, "diff", diff))
+            if (diff != 0) {
+              #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax()[varNames[column]]))))
+              step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
+              # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
+              
+              if(!is.null(currentVal) & input$stickyFilters){
+  
+                  sliderChange <- currentVal %in%  c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4))
+                  min = signif(min-step*10, digits = 4)
+                  max = signif(max+step*10, digits = 4)
+                  if(sliderChange[1] & sliderChange[2]){
+                    column(2, sliderInput(paste0('inp', column),
+                                       varNames[column],
+                                       step = signif(step, digits = 4),
+                                       min = min,
+                                       max = max,
+                                       value = currentVal)
+                    )
+                  }
+                  else {
+                    if(currentVal[1] < min){
+                      currentVal[1] <- min
+                    }
+                    if(currentVal[2] > max){
+                      currentVal[2] <- max
+                    }
+                    column(2, sliderInput(paste0('inp', column),
+                                  varNames[column],
+                                  step = signif(step, digits = 4),
+                                  min = min,
+                                  max = max,
+                                  value = currentVal)
+                    )
+                  }
+                }
+                else{
                   column(2, sliderInput(paste0('inp', column),
                                      varNames[column],
                                      step = signif(step, digits = 4),
-                                     min = min,
-                                     max = max,
-                                     value = currentVal)
+                                     min = signif(min-step*10, digits = 4),
+                                     max = signif(max+step*10, digits = 4),
+                                     value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
                   )
                 }
-                else {
-                  if(currentVal[1] < min){
-                    currentVal[1] <- min
+              
+            }
+          } 
+          else {
+            if (varClass[column] == "integer") {
+              if (min != max) {
+                if(!is.null(currentVal) & input$stickyFilters){
+                  sliderChange <- currentVal %in%  c(min, max)
+                  if(sliderChange[1] & sliderChange[2]){
+                    column(2, sliderInput(paste0('inp', column),
+                                       varNames[column],
+                                       min = min,
+                                       max = max,
+                                       value = c(min, max))
+                    )
                   }
-                  if(currentVal[2] > max){
-                    currentVal[2] <- max
+                  else {
+                    if(currentVal[1] < min){
+                      currentVal[1] <- min
+                    }
+                    if(currentVal[2] > max){
+                      currentVal[2] <- max
+                    }
+                    column(2, sliderInput(paste0('inp', column),
+                                       varNames[column],
+                                       min = min,
+                                       max = max,
+                                       value = currentVal)
+                    )
                   }
-                  column(2, sliderInput(paste0('inp', column),
-                                varNames[column],
-                                step = signif(step, digits = 4),
-                                min = min,
-                                max = max,
-                                value = currentVal)
-                  )
                 }
-              }
-              else{
-                column(2, sliderInput(paste0('inp', column),
-                                   varNames[column],
-                                   step = signif(step, digits = 4),
-                                   min = signif(min-step*10, digits = 4),
-                                   max = signif(max+step*10, digits = 4),
-                                   value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
-                )
-              }
-            
-          }
-        } 
-        else {
-          if (varClass[column] == "integer") {
-            max <- as.integer(unname(rawAbsMax()[varNames[column]]))
-            min <- as.integer(unname(rawAbsMin()[varNames[column]]))
-            if (min != max) {
-              if(!is.null(currentVal) & input$stickyFilters){
-                sliderChange <- currentVal %in%  c(min, max)
-                if(sliderChange[1] & sliderChange[2]){
+                
+                else{
                   column(2, sliderInput(paste0('inp', column),
                                      varNames[column],
                                      min = min,
@@ -409,33 +437,10 @@ shinyServer(function(input, output, clientData, session) {
                                      value = c(min, max))
                   )
                 }
-                else {
-                  if(currentVal[1] < min){
-                    currentVal[1] <- min
-                  }
-                  if(currentVal[2] > max){
-                    currentVal[2] <- max
-                  }
-                  column(2, sliderInput(paste0('inp', column),
-                                     varNames[column],
-                                     min = min,
-                                     max = max,
-                                     value = currentVal)
-                  )
-                }
-              }
-              
-              else{
-                column(2, sliderInput(paste0('inp', column),
-                                   varNames[column],
-                                   min = min,
-                                   max = max,
-                                   value = c(min, max))
-                )
               }
             }
           }
-        }
+        })
       })
     )
   })
@@ -622,22 +627,23 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
-  rangesData <- reactive({
-    # for(column in 1:length(varNames)) {
-    #   inpName=paste("inp",toString(column),sep="")
-    #   nname = varNames[column]
-    #   rng = input[[inpName]]
-    #   if(length(rng) != 0) {
-    #     if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-    #       # print(paste("Filtering between", rng[1], "and", rng[2]))
-    #       data <- data[data[nname] >= rng[1],]
-    #       data <- data[data[nname] <= rng[2],]
-    #     }
-    #   }
-    # }
-    maxes <- apply(isolate(filterData()), 2, function(x) max(x, na.rm = TRUE))
-    print(paste(maxes))
-  })
+  # rangesData <- reactive({
+  #   # for(column in 1:length(varNames)) {
+  #   #   inpName=paste("inp",toString(column),sep="")
+  #   #   nname = varNames[column]
+  #   #   rng = input[[inpName]]
+  #   #   if(length(rng) != 0) {
+  #   #     if((varClass[column]=="numeric" | varClass[column]=="integer")) {
+  #   #       # print(paste("Filtering between", rng[1], "and", rng[2]))
+  #   #       data <- data[data[nname] >= rng[1],]
+  #   #       data <- data[data[nname] <= rng[2],]
+  #   #     }
+  #   #   }
+  #   # }
+  #   maxes <- apply(isolate(filterData()), 2, function(x) max(x, na.rm = TRUE))
+  #   print(paste(maxes))
+  #   maxes
+  # })
 
   # Pairs Tab ----------------------------------------------------------------
   
@@ -884,7 +890,7 @@ shinyServer(function(input, output, clientData, session) {
   
   output$exportRanges <- downloadHandler(
     filename = function() { paste('ranges-', Sys.Date(), '.csv', sep='') },
-    content = function(file) { write.csv(rangesData(), file) }
+    content = function(file) { write.csv(t(summary(filterData())), file) }
   )
   
   output$exportPlot <- downloadHandler(
@@ -984,7 +990,7 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   #This version preseves user slider settings when changing removeMissing/removeOutliers
-  updateColorSlider2 <- observeEvent(filterData(), {
+  updateColorSlider2 <- observeEvent(raw_plus(), {
     req(input$colVarNum)
     variable <- input$colVarNum
     data <- filterData()

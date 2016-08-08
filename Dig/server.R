@@ -1,5 +1,5 @@
 library(shiny)
-#library(ggplot2)
+library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -705,7 +705,7 @@ shinyServer(function(input, output, clientData, session) {
             "Please select two or more display variables.")
       }
     }
-    #ggplot(melt(pairs_data())))
+    #ggplot(pairs_data(), aes(designVariable.RootChord, designVariable.TipChord)) + geom_point(color = "firebrick")
   })
   
   output$pairsDisplay <- renderUI({

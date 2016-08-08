@@ -1,4 +1,5 @@
 library(shiny)
+#library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -679,6 +680,8 @@ shinyServer(function(input, output, clientData, session) {
     }
   }
   
+  
+  
   output$pairsPlot <- renderPlot({
     
     output$displayVars <- renderText("")
@@ -686,6 +689,7 @@ shinyServer(function(input, output, clientData, session) {
     
     if (length(input$display) >= 2 & nrow(filterData()) > 0) {
       print("Rendering Plot.")
+      
       pairsTrendline()
       print("Plot Rendered.")
     }
@@ -701,6 +705,7 @@ shinyServer(function(input, output, clientData, session) {
             "Please select two or more display variables.")
       }
     }
+    #ggplot(melt(pairs_data())))
   })
   
   output$pairsDisplay <- renderUI({
@@ -766,9 +771,9 @@ shinyServer(function(input, output, clientData, session) {
         y_var <- rev(input$display)[i]
       }
       if(!is.null(x_var) & !is.null(y_var)){
-        updateTabsetPanel(session, "inTabset", selected = "Single Plot")
         updateSelectInput(session, "xInput", selected = x_var)
         updateSelectInput(session, "yInput", selected = y_var)
+        updateTabsetPanel(session, "inTabset", selected = "Single Plot")
         break
       }
       xlimits <- xlimits + plot + buffer
@@ -997,9 +1002,9 @@ shinyServer(function(input, output, clientData, session) {
       sliderMin <- signif(absMin-absStep*10, digits = 4)
       sliderMax <- signif(absMax+absStep*10, digits = 4)
       if(currentVal[1] < sliderMin)
-        currentVal[1] <- unname(thirtythree)
+        currentVal[1] <- sliderMin
       if(currentVal[2] > sliderMax)
-        currentVal[2] <- unname(sixtysix)
+        currentVal[2] <- sliderMax
       if(!input$stickyFilters)
         currentVal <- c(unname(thirtythree), unname(sixtysix))
       updateSliderInput(session,
@@ -1011,9 +1016,9 @@ shinyServer(function(input, output, clientData, session) {
     }
     if(varClass[[variable]] == "integer") {
       if(currentVal[1] < absMin)
-        currentVal[1] <- floor(unname(thirtythree))
+        currentVal[1] <- absMin
       if(currentVal[2] > absMax)
-        currentVal[2] <- ceiling(unname(sixtysix))
+        currentVal[2] <- absMax
       if(!input$stickyFilters)
         currentVal <- c(floor(unname(thirtythree)), ceiling(unname(sixtysix)))
       updateSliderInput(session,

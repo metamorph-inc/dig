@@ -1,5 +1,6 @@
 library(shiny)
 library(ggplot2)
+library(GGally)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
 #options(error = function() traceback(2))
@@ -692,11 +693,12 @@ shinyServer(function(input, output, clientData, session) {
     
     output$displayVars <- renderText("")
     output$filterVars <- renderText("")
+    data <- pairs_data()
+    vars <- pairs_vars()
     
     if (length(input$display) >= 2 & nrow(filterData()) > 0) {
       print("Rendering Plot.")
-      
-      pairsTrendline()
+      #pairsTrendline()
       print("Plot Rendered.")
     }
     else {
@@ -711,7 +713,19 @@ shinyServer(function(input, output, clientData, session) {
             "Please select two or more display variables.")
       }
     }
-    #ggplot(pairs_data(), aes(designVariable.RootChord, designVariable.TipChord)) + geom_point(color = "firebrick")
+    
+    
+    diamonds$zcolor <- character(nrow(diamonds))
+    diamonds$zcolor[diamonds[['carat']] < 0.60] <- "#E74C3C"
+    diamonds$zcolor[diamonds[['carat']] <= 0.70 & diamonds[['carat']] >= 0.60] <- "#F1C40F"
+    diamonds$zcolor[diamonds[['carat']] > 0.70] <- "#2ECC71"
+    pairs(head(diamonds[,1:10], 1800), col = diamonds$zcolor)
+    
+    # gg <- ggpairs(data[vars], 
+    #               lower = list(combo = wrap('facethist', binwidth = 1)),
+    #               upper = "blank", 
+    #               axisLabels = "internal")
+    # gg
   })
   
   output$pairsDisplay <- renderUI({

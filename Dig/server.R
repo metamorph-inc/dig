@@ -921,7 +921,10 @@ shinyServer(function(input, output, clientData, session) {
 
   output$singlePlot <- renderPlot({
     data <- filterData()
-    plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
+    ggplot(data, aes_q(x = as.name(input$xInput), 
+                       y = as.name(input$yInput))) 
+    + geom_point() 
+        #plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
   
   info <- renderPrint({

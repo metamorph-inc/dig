@@ -934,7 +934,7 @@ shinyServer(function(input, output, clientData, session) {
   
   # Ranges Table Tab --------------------------------------------------------------------------------
   slowRangeData <- eventReactive(input$updateRanges, {
-    t(summary(filterData()))
+    do.call(rbind, lapply(filterData(), summary))
   })
   
   output$ranges <- renderPrint({

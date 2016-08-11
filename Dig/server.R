@@ -910,11 +910,8 @@ shinyServer(function(input, output, clientData, session) {
     plot(data[[paste(input$xInput)]], data[[paste(input$yInput)]], xlab = paste(input$xInput), ylab = paste(input$yInput), pch = as.numeric(input$pointStyle))
   })
   
-  info <- renderPrint({
-    brushedPoints(filterData(), 
-                 input$plot_brush,
-                 xvar = input$xInput,
-                 yvar = input$yInput)
+  output$info <- renderPrint({
+    t(nearPoints(filterData(), input$plot_click, xvar = input$xInput, yvar = input$yInput, maxpoints = 8))
   })
   
   

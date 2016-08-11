@@ -171,6 +171,7 @@ shinyServer(function(input, output, clientData, session) {
     data <- raw
     
     if(input$removeOutliers){
+      
       for(column in 1:length(varNames)) {
         
         nname = varNames[column]
@@ -761,7 +762,6 @@ shinyServer(function(input, output, clientData, session) {
       margin <- -1.51
       buffer <- 0.25
     }
-    
     xlimits <- c(margin, plot+margin)
     ylimits <- xlimits
     if(num_vars > 18){
@@ -923,6 +923,22 @@ shinyServer(function(input, output, clientData, session) {
     filterData()
   })
   
+  round_df <- function(x, digits) {
+    # round all numeric variables
+    # x: data frame 
+    # digits: number of digits to round
+    numeric_columns <- sapply(x, class) == 'numeric'
+    x[numeric_columns] <-  round(x[numeric_columns], digits)
+    x
+  }
+  
+  datatable_display <- function(...){
+    df <- filterData()
+    colnames(df) <- sapply(names(df), function(x) abbreviate(unlist(strsplit(x, "[.]"))[2], 9))
+    df <- round_df(df, 4)
+    df
+  }
+  
   output$table <- renderDataTable({
     if(input$autoData == TRUE){
       filterData()
@@ -945,9 +961,6 @@ shinyServer(function(input, output, clientData, session) {
       slowRangeData()
     }
   })
-  
-
-  
   
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- observeEvent(input$colVarNum, {

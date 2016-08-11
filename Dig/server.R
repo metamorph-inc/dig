@@ -168,6 +168,7 @@ shinyServer(function(input, output, clientData, session) {
   )
   
   raw_rm_outliers <- reactive({
+    
     data <- raw
     
     if(input$removeOutliers){
@@ -191,21 +192,29 @@ shinyServer(function(input, output, clientData, session) {
           data <- subset(data, inRange)
         }
       }
+      
     }
+    
     data
+    
   })
   
-  raw_rm_missing <- reactive({
-    data <- raw 
+  raw_rm_missing <- eventReactive(input$removeMissing, {
+    
+    data <- raw
     
     if(input$removeMissing){
+    
       for(column in 1:length(varNames)) {
         nname = varNames[column]
         inRange <- !is.na(data[[nname]])
         data <- subset(data, inRange)
       }
+      
     }
+    
     data
+    
   })
   
   raw_plus <- reactive({

@@ -8,10 +8,10 @@ library(shiny)
 palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
-newColSliderValues <- NULL
 oldColVarNum <- NULL
 skip <- FALSE
-values <- reactiveValues()
+rValues <- reactiveValues()
+newColSliderValues <- NULL
 
 shinyServer(function(input, output, clientData, session) {
   
@@ -834,6 +834,7 @@ shinyServer(function(input, output, clientData, session) {
   })
   
   output$stats <- renderText({
+    print("HEYY YOUY HEYYYY YOU")
     if(input$autoInfo == TRUE){
       infoTable()
     }
@@ -842,7 +843,7 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
 
-  infoTable <- eventReactive(colorData(), {
+  infoTable <- function(...){
     tb <- table(factor(colorData()$color, c(input$midColor, input$minColor, input$highlightColor, input$maxColor, input$normColor)))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
@@ -886,7 +887,7 @@ shinyServer(function(input, output, clientData, session) {
              "\nVisible Points: ", tb[[input$normColor]]
       )
     }
-  })
+  }
   
   slowInfoTable <- eventReactive(input$updateStats, {
     infoTable()
@@ -968,6 +969,11 @@ shinyServer(function(input, output, clientData, session) {
     }
   })
   
+  updateColSliderFromCSV <- observeEvent(newColSliderValues, {
+    print ("something HAPPEPNGININDGSDG")
+  })
+  
+
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- observeEvent(input$colVarNum, {
     req(input$colVarNum)

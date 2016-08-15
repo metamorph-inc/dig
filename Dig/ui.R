@@ -28,7 +28,7 @@ shinyUI(fluidPage(
                 condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
                 radioButtons("radio", NULL, c("Maximize" = "max", "Minimize" = "min"), selected = "max"),
-                sliderInput("colSlider", NULL, min=0, max=1, value=c(0.3,0.7), step=0.1)
+                sliderInput("colSlider", NULL, min=0, max=1, value = c(0.3, 0.7), step=0.1)
               ),
               conditionalPanel(
                 condition = "input.colType == 'Discrete'",

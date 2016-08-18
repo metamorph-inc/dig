@@ -12,11 +12,12 @@ palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
 importFlag <- FALSE
 
 shinyServer(function(input, output, session) {
+
+  session$onSessionEnded(function() {
+    stopApp()
+  })
   
-  rValues <- reactiveValues(newColSliderValues = NULL, 
-                            newColVarNum = NULL,
-                            newRemoveOutliers = NULL,
-                            newRemoveMissing = NULL)
+  rValues <- reactiveValues()
   
   # Get Data -----------------------------------------------------------------
   raw <- c()
@@ -52,8 +53,6 @@ shinyServer(function(input, output, session) {
     })
     pathname;
   }
-  
-  
   
 
   #Changes values based on user uploaded csv file
@@ -170,10 +169,10 @@ shinyServer(function(input, output, session) {
       variable <- rValues$newColVarNum
       min <- min(rValues$data[[variable]], na.rm=TRUE)
       max <- max(rValues$data[[variable]], na.rm=TRUE)
-      newRawAbsMin <- apply(rValues$data[varNum], 2, min, na.rm=TRUE)
-      newRawAbsMax <- apply(rValues$data[varNum], 2, max, na.rm=TRUE)
-      absMin <- as.numeric(unname(newRawAbsMin[variable]))
-      absMax <- as.numeric(unname(newRawAbsMax[variable]))
+      rValues$newRawAbsMin <- apply(rValues$data[varNum], 2, min, na.rm=TRUE)
+      rValues$newRawAbsMax <- apply(rValues$data[varNum], 2, max, na.rm=TRUE)
+      absMin <- as.numeric(unname(rValues$newRawAbsMin[variable]))
+      absMax <- as.numeric(unname(rValues$newRawAbsMax[variable]))
       absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
       if(varClass[[variable]] == "numeric") {
         updateSliderInput(session,
@@ -264,7 +263,7 @@ shinyServer(function(input, output, session) {
   }
 
   
-  raw_rm_outliers <- eventReactive(input$removeOutliers, {
+  raw_rm_outliers <- reactive({
     
     print("In remove outliers")
     
@@ -272,7 +271,7 @@ shinyServer(function(input, output, session) {
     
   })
   
-  raw_rm_missing <- eventReactive(input$removeMissing, {
+  raw_rm_missing <- reactive({
     
     print("In remove missing")
     
@@ -341,7 +340,6 @@ shinyServer(function(input, output, session) {
     
     isolate({
     print("Updating Panel Selections...")
-    
     updateSelectInput(session, "colVarFactor", choices = varRangeFac())  
     updateSelectInput(session, "colVarNum", choices = varRangeNum())#, selected = varRangeNum()[c(1)])
     updateSelectInput(session, "display", choices = varRange(), selected = varRange()[c(1,2)])
@@ -360,22 +358,25 @@ shinyServer(function(input, output, session) {
   
   resetViewerOptions <- observeEvent(input$resetSettings, {
     print("In resetViewerSettings()")
+    
     # Processing
     updateCheckboxInput(session, "removeMissing", value = TRUE)
     updateCheckboxInput(session, "removeOutliers", value = FALSE)
+    
     # Render
     updateCheckboxInput(session, "autoRender", value = TRUE)
     updateCheckboxInput(session, "trendLines", value = FALSE)
     updateCheckboxInput(session, "upperPanel", value = FALSE)
     
     # I can't find a solution for making these work.. :(
-    # updateSelectInput(session, "pointStyle", selected = 1)
-    # updateSelectInput(session, "pointSize", selected = 1)
+    updateRadioButtons(session, "pointStyle", selected = 1)
+    updateRadioButtons(session, "pointSize", selected = c("Small" = 1))
     
     # Automatically update
     updateCheckboxInput(session, "autoInfo", value = TRUE)
     updateCheckboxInput(session, "autoData", value = TRUE)
     updateCheckboxInput(session, "autoRange", value = TRUE)
+    
     # Color
     updateColourInput(session, "normColor", "Normal", "black")
     updateColourInput(session, "maxColor", "Worst", "#E74C3C")
@@ -385,7 +386,7 @@ shinyServer(function(input, output, session) {
   })
 
   print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
-
+  
   # Sliders ------------------------------------------------------------------
   output$enums <- renderUI({
     print("In render factor enums")
@@ -752,7 +753,6 @@ shinyServer(function(input, output, session) {
   #   print(paste(maxes))
   #   maxes
   # })
-
   # Pairs Tab ----------------------------------------------------------------
   
   pairs_data <- reactive({
@@ -797,7 +797,10 @@ shinyServer(function(input, output, session) {
     }
   }
   
-  
+  output$pairsDisplay <- renderUI({
+    print("In pairs display")
+    plotOutput("pairsPlot", dblclick = "pairs_click", height=700)
+  })
   
   output$pairsPlot <- renderPlot({
     
@@ -806,9 +809,8 @@ shinyServer(function(input, output, session) {
     output$displayVars <- renderText("")
     output$filterVars <- renderText("")
     
-    if (length(input$display) >= 2 & nrow(filterData()) > 0) {
+    if (length(input$display) >= 2 & nrow(filterData() > 0)) {
       print("Rendering Plot.")
-      
       pairsTrendline()
       print("Plot Rendered.")
     }
@@ -827,10 +829,7 @@ shinyServer(function(input, output, session) {
     #ggplot(melt(pairs_data())))
   })
   
-  output$pairsDisplay <- renderUI({
-    print("In pairs display")
-    plotOutput("pairsPlot", dblclick = "pairs_click", height=700)
-  })
+  
   
   output$filterError <- renderUI({
     print("In filter error")
@@ -942,15 +941,17 @@ shinyServer(function(input, output, session) {
   
   output$stats <- renderText({
     print("In render stats")
+    if(importFlag){
+      importFlag <<- FALSE
+      rValues <- NULL
+    }
     if(input$autoInfo == TRUE){
       infoTable()
     }
     else {
       slowInfoTable()
     }
-    if(importFlag){
-      importFlag <<- FALSE
-    }
+    
   })
 
   infoTable <- function(...){
@@ -1140,7 +1141,6 @@ shinyServer(function(input, output, session) {
     }
     else{
       print("updateColorSlider stalled")
-      importFlag <<- FALSE
     }
   })
   

@@ -12,7 +12,6 @@ importData <- NULL
 
 shinyServer(function(input, output, session) {
 
-  importVals <- reactiveValues()
   importFlags <- reactiveValues(tier1 = FALSE, tier2 = FALSE, tier3 = FALSE)
   
   session$onSessionEnded(function() {
@@ -59,48 +58,102 @@ shinyServer(function(input, output, session) {
     req(file)
     importData <<- read.csv(file, header = TRUE, strip.white = TRUE)
     importFlags$tier1 <- TRUE
-    tier1()
   })
   
-  tier1 <- eventReactive(importFlags$tier1, {
-    print("In tier 1 upload")
+  tier1Flush <- observeEvent(importFlags$tier1, {
     if(importFlags$tier1){
-      tier1Vals <- c("removeMissing", "removeOutliers", "stickyFitlers")
-  
-      for(i in 1:length(tier1Vals)){
-        current <- tier1Vals[i]
+      print("In tier 1 upload")
+      
+      tier1CheckBox <- c("removeMissing",
+                         "removeOutliers",
+                         "stickyFilters",
+                         "autoRender",
+                         "trendLines",
+                         "upperPanel",
+                         "autoInfo",
+                         "autoData",
+                         "autoRange")
+      
+      tier1Selects <- c("colVarNum",
+                        "display",
+                        "xInput",
+                        "yInput",
+                        "colType",
+                        "colVarFactor",
+                        "numDevs")
+                     
+      tier1Colors <- c("normColor", 
+                       "minColor", 
+                       "maxColor", 
+                       "midColor", 
+                       "highlightColor")
+      
+      for(i in 1:length(tier1CheckBox)){
+        current <- tier1CheckBox[i]
         trimmedValue <- gsub("^\\s+|\\s+$", "", importData[[current]])
         updateCheckboxInput(session, current, value = as.logical(trimmedValue))
       }
-      importFlags$tier1 <- FALSE
-      session$onFlushed(importFlags$tier2 <- TRUE)
-    }
-  })
-  
-  tier2 <- eventReactive(importFlags$tier2, {
-    print("In tier 2 upload")
-    if(importFlags$tier2){
-      tier2Vals <- c("colVarNum", "colType")
-      for(i in 1:length(tier2Vals)){
-        current <- tier2Vals[i]
+      for(i in 1:length(tier1Selects)){
+        current <- tier1Selects[i]
         parsedValue <- as.list(strsplit(toString(importData[[current]]), ", ")[[1]])
         trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
         updateSelectInput(session,
                           current,
                           selected = trimmedValue)
       }
-      importFlags$tier2 <- FALSE
-      importFlags$tier3 <- TRUE
+      for(i in 1:length(tier1Colors)){
+        current <- tier1Colors[i]
+        trimmedValue <- gsub("^\\s+|\\s+$", "", importData[[current]])
+        updateColourInput(session, current, value = trimmedValue)
+      }
     }
   })
   
-  #Changes values based on user uploaded csv file
+  tier2Flush <- observeEvent(importFlags$tier2, {
+    if(importFlags$tier2){
+      print("In tier 2 upload")
+      
+      for(i in 1:length(colnames(importData))){
+        
+        current <- colnames(importData)[i]
+        column <- as.numeric(gsub("[^0-9]", "", current)) #Extract number
+        # print(paste("Current:",current, "Column:",column))
+        
+        if(!is.null(importData[[current]]) & !is.na(column)){
+          if (varClass[column] == "factor" & length(names(table(raw[varNames[column]]))) > 1) {
+            parsedValue <- as.list(strsplit(toString(importData[[current]]), ", ")[[1]])
+            trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
+            updateSelectInput(session, current, selected = trimmedValue)
+          }
+          else {
+            if(varClass[column] == "numeric" | varClass[column] == "integer") {
+              rng <- as.numeric(unlist(strsplit(toString(importData[[current]]), ", ")))
+              updateSliderInput(session, current, value = rng)
+            }
+          }
+        }
+      }
+    }
+  })
   
-    
+  tier3Flush <- observeEvent(importFlags$tier3, {
+    if(importFlags$tier3){
+      print("In tier 3 upload")
+        rng <- as.numeric(unlist(strsplit(toString(importData[['colSlider']]), ", ")))
+        updateSliderInput(session, 'colSlider', value = rng)
+    }
+  })
+  
+  
+  
+  # Changes values based on user uploaded csv file
+  # initImport <- observeEvent(input$importSession, {
+  #   file <- fileChoose()
+  #   req(file)
+  #   filedata <- read.csv(file, header = TRUE, strip.white = TRUE)
+  # 
   #   print("In UploadingFile()")
   #   for(i in 1:length(colnames(filedata))){
-  # 
-  #     incProgress(1/length(colnames(filedata)))
   # 
   #     current <- colnames(filedata)[i]
   #     column <- as.numeric(gsub("[^0-9]", "", current)) #Extract number
@@ -111,21 +164,19 @@ shinyServer(function(input, output, session) {
   #         parsedValue <- as.list(strsplit(toString(filedata[[current]]), ", ")[[1]])
   #         trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
   #         #updateSelectInput(session, current, selected = trimmedValue)
-  #         importVals[[current]] <- trimmedValue
   #       }
   #       else {
   #         if(varClass[column] == "numeric" | varClass[column] == "integer") {
   #           rng <- as.numeric(unlist(strsplit(toString(filedata[[current]]), ", ")))
   #           #updateSliderInput(session, current, value = rng)
-  #           importVals[[current]] <- rng
   #         }
   #       }
   #     }
   #     else {
-  #       if(current == 'colSlider'){
-  #         print("Updated colslider from csv")
-  #         importVals[[current]] <- as.numeric(unlist(strsplit(toString(filedata[[current]]), ", ")))
-  #       }
+        # if(current == 'colSlider'){
+        #   print("Updated colslider from csv")
+        #   newcolslider <- as.numeric(unlist(strsplit(toString(filedata[[current]]), ", ")))
+        # }
   #       else {
   #         if(current == 'colVarNum'){
   #           print("Updated colVarNum from csv")
@@ -133,7 +184,7 @@ shinyServer(function(input, output, session) {
   #           trimmedValue <- gsub("^\\s+|\\s+$", "", parsedValue)
   #           updateSelectInput(session,
   #                             current,
-  #                             selected = rValues$newColVarNum)
+  #                             selected = trimmedValue)
   #         }
   #         else {
   #           if (current == 'stickyFilters' | current == 'removeMissing' | current == 'removeOutliers' | current == 'autoRender' | current == 'trendLines' | current == 'upperPanel' | current == 'autoInfo' | current == 'autoData' | current == 'autoRange'){
@@ -867,7 +918,10 @@ shinyServer(function(input, output, session) {
     else {
       slowInfoTable()
     }
-    
+    if(importFlags$tier1){
+      importFlags$tier1 <- FALSE
+      importFlags$tier2 <- TRUE
+    }
   })
 
   infoTable <- function(...){
@@ -1046,6 +1100,10 @@ shinyServer(function(input, output, session) {
     }
     else{
       print("updateColorSlider stalled")
+    }
+    if(importFlags$tier2){
+      importFlags$tier2 <- FALSE
+      importFlags$tier3 <- TRUE
     }
   })
   

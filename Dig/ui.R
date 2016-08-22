@@ -126,7 +126,7 @@ shinyUI(fluidPage(
               conditionalPanel("input.removeOutliers == '1'", 
                 column(8, 
                   tags$div(title = "Number of standard deviations to filter data by.", 
-                    sliderInput("numDevs", HTML("&sigma;:"), min = 1, max = 11, step = 0.1, value = 5.5))))
+                    sliderInput("numDevs", HTML("&sigma;:"), min = 1, max = 11, step = 0.1, value = 6))))
             ),
             tags$div(title = "Sticky Filters try to preserve their settings when removing/adding outliers or missing data rows.", 
                      checkboxInput("stickyFilters", "Sticky Filters", value = TRUE)),
@@ -193,8 +193,8 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.5"),
-            p(strong("Date:"), "7/28/2016"),
+            p(strong("Version:"), "v1.2.7"),
+            p(strong("Date:"), "8/22/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )

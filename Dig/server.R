@@ -40,6 +40,7 @@ shinyServer(function(input, output, session) {
   {
     # raw = read.csv("../data.csv", fill=T)
     raw = read.csv("../../results/mergedPET.csv", fill=T)
+    raw = iris
   }
   
   
@@ -108,6 +109,7 @@ shinyServer(function(input, output, session) {
         trimmedValue <- gsub("^\\s+|\\s+$", "", importData[[current]])
         updateColourInput(session, current, value = trimmedValue)
       }
+      updateTabsetPanel(session, "inTabset", "Pairs Plot")
     }
   })
   
@@ -164,72 +166,34 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  processRemoveOutliers <- function(condition){
-    data <- raw
-    
-    if(condition){
-      
-      for(column in 1:length(varNames)) {
-        
-        nname = varNames[column]
-        rng <- c(0,1)
-        
-        if((varClass[column]=="numeric" | varClass[column]=="integer")) {
-          suppressWarnings(stdDev <- sd(data[[nname]], na.rm = TRUE))
-          suppressWarnings(mean <- mean(data[[nname]], na.rm = TRUE))
-          rng[1] <- round(mean - as.numeric(input$numDevs)*stdDev, 6)
-          rng[2] <- round(mean + as.numeric(input$numDevs)*stdDev, 6)
-          if(varClass[column] == "integer"){
-            rng[2] <- round(rng[2])
-          }
-          above <- (data[[nname]] >= rng[1])
-          below <- (data[[nname]] <= rng[2])
-          inRange <- above & below | is.na(data[[nname]])
-          data <- subset(data, inRange)
-        }
-      }
-      
-    }
-    
-    data
-  }
-  
-  processRemoveMissing <- function(condition){
-    data <- raw
-    
-    if(condition){
-      
-      for(column in 1:length(varNames)) {
-        nname = varNames[column]
-        inRange <- !is.na(data[[nname]])
-        data <- subset(data, inRange)
-      }
-      
-    }
-    
-    data
-  }
-
-  
-  raw_rm_outliers <- reactive({
-    
-    print("In remove outliers")
-    
-    processRemoveOutliers(input$removeOutliers)
-    
-  })
-  
-  raw_rm_missing <- reactive({
-    
-    print("In remove missing")
-    
-    processRemoveMissing(input$removeMissing)
-    
-  })
-  
   raw_plus <- reactive({
     print("In raw plus")
-    data <- merge.data.frame(raw_rm_missing(), raw_rm_outliers())
+    data <- raw
+    
+    if(input$removeMissing){
+      #Filter out rows with missing data
+      data <- data[complete.cases(data),]
+      
+    }
+    
+    if(input$removeOutliers){
+      #Filter out rows by standard deviation
+      for(column in 1:length(varNum)) {
+        a <- sapply(data[varNum[column]], 
+          function(x) {
+            m <- mean(x, na.rm = TRUE)
+            s <- sd(x, na.rm = TRUE)
+            x >= m - input$numDevs*s &
+            x <= m + input$numDevs*s
+          }
+        )
+        data <- subset(data, a)
+        
+      }
+      
+    }
+    
+    data
   })
 
   # Pre-processing -----------------------------------------------------------

@@ -97,6 +97,19 @@ shinyUI(fluidPage(
         )
       )
     ),
+    tabPanel("Data Ranking",
+             wellPanel(
+               fluidRow(
+                 column(2, selectInput("weightMetrics",
+                             "Select Weighted Metrics:",
+                             c(),
+                             multiple = TRUE)),
+                 br(), br(), br()
+               ),
+               uiOutput("rankings"),
+               dataTableOutput("rankTable")
+             )
+    ),
     tabPanel("Ranges",
      wellPanel(
         fluidRow(

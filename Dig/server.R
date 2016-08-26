@@ -40,7 +40,7 @@ shinyServer(function(input, output, session) {
   {
     # raw = read.csv("../data.csv", fill=T)
     raw = read.csv("../../results/mergedPET.csv", fill=T)
-    raw = iris
+    #raw = iris
   }
   
   
@@ -252,6 +252,7 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "colVarFactor", choices = varRangeFac())  
     updateSelectInput(session, "colVarNum", choices = varRangeNum())#, selected = varRangeNum()[c(1)])
     updateSelectInput(session, "display", choices = varRange(), selected = varRange()[c(1,2)])
+    updateSelectInput(session, "weightMetrics", choices = varNum, selected = NULL)
     updateSelectInput(session, "xInput", choices = varRange(), selected = varRange()[c(1)])
     updateSelectInput(session, "yInput", choices = varRange(), selected = varRange()[c(2)])
     })   
@@ -460,6 +461,8 @@ shinyServer(function(input, output, session) {
       })
     )
   })
+  
+  
   
   resetDefaultSliders <- observeEvent(input$resetSliders, {
     print("In resetDefaultSliders()")
@@ -771,7 +774,7 @@ shinyServer(function(input, output, session) {
   
   varsList <- reactive({
     print("Getting Variable List.")
-    idx = 0
+    idx = NULL
     for(choice in 1:length(input$display)) {
       mm <- match(input$display[choice],varNames)
       if(mm > 0) { idx <- c(idx,mm) }
@@ -925,6 +928,74 @@ shinyServer(function(input, output, session) {
       data <- slowFilterData()
     }
   })
+  
+  # Data Ranking Tab ---------------------
+  
+  metricsList <- reactive({
+    print("Getting Metrics List.")
+    idx = NULL
+    req(input$weightMetrics)
+    for(choice in 1:length(input$weightMetrics)) {
+      mm <- match(input$weightMetrics[choice],varNames)
+      if(mm > 0) { idx <- c(idx,mm) }
+    }
+    print(idx)
+    idx
+  })
+
+  output$rankings <- renderUI({
+    req(metricsList())
+    print("In render ranking sliders")
+    fluidRow(
+      lapply(metricsList(), function(column) {
+        column(2, 
+               radioButtons(paste0('sel', column), 
+                            NULL,
+                            choices = c("Max", "Min"),
+                            selected = "Max",
+                            inline = TRUE),
+               sliderInput(paste0('rnk', column),
+                           paste0("Weight: ", varNames[column]),
+                           step = 0.01,
+                           min = 0,
+                           max = 1,
+                           value = 0)
+        )
+      })
+    )
+  })
+
+  
+  rankData <- reactive({
+    req(metricsList())
+    data <- filterData()[varNum]
+    normData <- t(t(data)/apply(data,2,max))
+    
+    scoreData <- sapply(row.names(normData) ,function(x) 0)
+    
+    for(i in 1:length(metricsList())) {
+      column <- metricsList()[i]
+      rnkName <- paste0("rnk", toString(column))
+      weight <- input[[rnkName]]
+      radioSelect <- paste0("sel", toString(column))
+      if(input[[radioSelect]] == "Min"){
+        colMin <- min(normData[,column])
+        for(j in 1:length(normData[,column])) {
+          item <- normData[,column][j]
+          normData[j,column] <- 1 -item + colMin
+        }
+      }
+      scoreData <- scoreData + weight*normData[,column]
+    }
+    scoreData <- sort(scoreData, decreasing = TRUE)
+    data
+    
+  })
+  
+  output$rankTable <- renderDataTable({
+    rankData()
+  })
+  
   
   # Ranges Table Tab --------------------------------------------------------------------------------
   slowRangeData <- eventReactive(input$updateRanges, {

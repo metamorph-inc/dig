@@ -993,16 +993,16 @@ shinyServer(function(input, output, session) {
     
     sliderVal <- input[[paste0('rnk', current)]]
     if(is.null(sliderVal))
-      sliderVal <- 0
+      sliderVal <- 1
     
     radioVal <- input[[paste0('sel', current)]]
     if(is.null(radioVal))
-      radioVal <- "Max"
+      radioVal <- "Min"
     
     column(3, 
       radioButtons(paste0('sel', current), 
                    NULL,
-                   choices = c("Max", "Min"),
+                   choices = c("Min", "Max"),
                    selected = radioVal,
                    inline = TRUE),
       sliderInput(paste0('rnk', current),
@@ -1044,7 +1044,7 @@ shinyServer(function(input, output, session) {
       radioSelect <- paste0("sel", toString(metricsList()[i]))
       if(input[[radioSelect]] == "Min"){
         colMin <- min(normData[column])
-        for(j in 1:length(normData[column])) {
+        for(j in 1:length(unlist(normData[column]))) {
           item <- normData[j,column]
           normData[j,column] <- 1 -item + colMin
         }

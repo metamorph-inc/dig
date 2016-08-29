@@ -1,4 +1,5 @@
 library(shiny)
+library(plotly)
 #library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
@@ -943,6 +944,51 @@ shinyServer(function(input, output, session) {
     idx
   })
   
+  output$rankPieChart <- renderPlotly({
+    weights <- unlist(lapply(metricsList(), function(x) input[[paste0('rnk', x)]]))
+    totalWeight <- 0
+    for(i in 1:length(weights)){
+      totalWeight <- totalWeight + weights[i]
+    }
+    p <- plot_ly(values = 0, type = "pie")
+    req(totalWeight)
+    isolate({
+      if(totalWeight > 0){
+        slices <- unlist(lapply(weights, function(x) x/totalWeight))
+        lbls <- unlist(lapply(metricsList(), function(x) varNames[x]))
+        ind_zeros <- which(slices %in% 0)
+        if(length(ind_zeros) > 0){
+          slices <- slices[-ind_zeros]
+          lbls <- lbls[-ind_zeros]
+        }
+        p <- plot_ly(pull = 0.1, labels = lbls, values = slices, type = "pie") 
+      }
+    })
+    p %>% layout(title = "Distribution of Weighted Metrics")
+  })
+  
+  
+  # output$rankPieChart <- renderPlot({
+  #   weights <- unlist(lapply(metricsList(), function(x) input[[paste0('rnk', x)]]))
+  #   totalWeight <- 0
+  #   for(i in 1:length(weights)){
+  #     totalWeight <- totalWeight + weights[i]
+  #   }
+  #   req(totalWeight)
+  #   isolate({
+  #     if(totalWeight > 0){
+  #       slices <- unlist(lapply(weights, function(x) x/totalWeight))
+  #       lbls <- unlist(lapply(metricsList(), function(x) varNames[x]))
+  #       ind_zeros <- which(slices %in% 0)
+  #       if(length(ind_zeros) > 0){
+  #         slices <- slices[-ind_zeros]
+  #         lbls <- lbls[-ind_zeros]
+  #       }
+  #       pie(slices, labels = lbls, main = "Distribution of Weighted Metrics")
+  #     }
+  #   })
+  # })
+  
   generateMetricUI <- function(current) {
     
     sliderVal <- input[[paste0('rnk', current)]]
@@ -953,7 +999,7 @@ shinyServer(function(input, output, session) {
     if(is.null(radioVal))
       radioVal <- "Max"
     
-    column(2, 
+    column(3, 
       radioButtons(paste0('sel', current), 
                    NULL,
                    choices = c("Max", "Min"),
@@ -984,7 +1030,7 @@ shinyServer(function(input, output, session) {
   
   rankData <- reactive({
     req(metricsList())
-    print("In calculate rank data")
+    print("In calculate ranked data")
     data <- filterData()[varNum]
     normData <- data.frame(t(t(data)/apply(data,2,max)))
     
@@ -1011,7 +1057,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$rankTable <- renderDataTable({
-    print("In render rank data table")
+    print("In render ranked data table")
     rankData()
   })
   

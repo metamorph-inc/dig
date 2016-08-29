@@ -1,4 +1,5 @@
 library(shiny)
+library(plotly)
 require(shinyjs)
 
 # Define UI for PET Design Space Browser application
@@ -100,10 +101,11 @@ shinyUI(fluidPage(
     tabPanel("Data Ranking",
              wellPanel(
                fluidRow(
-                 column(2, selectInput("weightMetrics",
+                 column(4, selectInput("weightMetrics",
                              "Select Weighted Metrics:",
                              c(),
                              multiple = TRUE)),
+                 column(8, plotlyOutput("rankPieChart")),
                  br(), br(), br()
                ),
                uiOutput("rankings"),

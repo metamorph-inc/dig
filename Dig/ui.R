@@ -109,10 +109,8 @@ shinyUI(fluidPage(
                  br(), br(), br()
                ),
                uiOutput("rankings"),
-               conditionalPanel(condition = "input.rankTable_rows_selected != NULL",
-                 downloadButton("exportPoints", "Export Selected Points"), 
-                 actionButton("colorRanked", "Color by Selected Rows")
-               ), br(),
+               downloadButton("exportPoints", "Export Selected Points"), 
+               actionButton("colorRanked", "Color by Selected Rows"), br(),
                DT::dataTableOutput("rankTable")
              )
     ),
@@ -233,8 +231,9 @@ shinyUI(fluidPage(
     ),
     br(), br()
   ),
-  uiOutput("enums"),
-  uiOutput("sliders"),
+  uiOutput("filters"),
+  # uiOutput("enums"),
+  # uiOutput("sliders"),
   h3("Constants:"),
   uiOutput("constants")
   

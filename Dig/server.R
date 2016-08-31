@@ -300,144 +300,230 @@ shinyServer(function(input, output, session) {
   print(paste("Finished Preprocessing the Data ----------------------------------------------------"))
   
   # Sliders ------------------------------------------------------------------
-  output$enums <- renderUI({
-    print("In render factor enums")
-    fluidRow(
-      lapply(1:length(varNames), function(column) {
-        isolate(currentVal <- input[[paste0('inp', column)]])
-        items <- names(table(raw_plus()[varNames[column]]))
-        if (varClass[column] == "factor" & length(items) > 1) {
-          isolate({
-            if(!is.null(currentVal) & length(currentVal) != length(items) & input$stickyFilters){
-              column(2, selectInput(paste0('inp', column),
-                                    varNames[column],
-                                    multiple = TRUE,
-                                    selectize = FALSE,
-                                    choices = items,
-                                    selected = currentVal)
-              )
-            }
-            else{
-              column(2, selectInput(paste0('inp', column),
-                                 varNames[column],
-                                 multiple = TRUE,
-                                 selectize = FALSE,
-                                 choices = items,
-                                 selected = items)
-              )
-            }
-          })
-        }
-      })
-    )
+  
+  output$filters <- renderUI({
+    req(varsList())
+    print("In render filters")
+    fullFilterUI()
   })
   
-  output$sliders <- renderUI({
-    print("In render sliders")
-    fluidRow(
-      lapply(1:length(varNames), function(column) {
-        isolate(currentVal <- input[[paste0('inp', column)]])
-        
-        max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
-        min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
-        
-        isolate({
-        
-          if(varClass[column] == "numeric") {
-            
-            diff <- (max-min)
-            # print(paste(column, "min", min, "max", max, "diff", diff))
-            if (diff != 0) {
-              #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax()[varNames[column]]))))
-              step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
-              # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
-              
-              if(!is.null(currentVal) & input$stickyFilters){
-  
-                  sliderChange <- currentVal %in%  c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4))
-                  min = signif(min-step*10, digits = 4)
-                  max = signif(max+step*10, digits = 4)
-                  if(sliderChange[1] & sliderChange[2]){
-                    column(2, sliderInput(paste0('inp', column),
-                                       varNames[column],
-                                       step = signif(step, digits = 4),
-                                       min = min,
-                                       max = max,
-                                       value = currentVal)
-                    )
-                  }
-                  else {
-                    if(currentVal[1] < min){
-                      currentVal[1] <- min
-                    }
-                    if(currentVal[2] > max){
-                      currentVal[2] <- max
-                    }
-                    column(2, sliderInput(paste0('inp', column),
-                                  varNames[column],
-                                  step = signif(step, digits = 4),
-                                  min = min,
-                                  max = max,
-                                  value = currentVal)
-                    )
-                  }
-                }
-                else{
-                  column(2, sliderInput(paste0('inp', column),
-                                     varNames[column],
-                                     step = signif(step, digits = 4),
-                                     min = signif(min-step*10, digits = 4),
-                                     max = signif(max+step*10, digits = 4),
-                                     value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
-                  )
-                }
-              
-            }
-          } 
-          else {
-            if (varClass[column] == "integer") {
-              if (min != max) {
-                if(!is.null(currentVal) & input$stickyFilters){
-                  sliderChange <- currentVal %in%  c(min, max)
-                  if(sliderChange[1] & sliderChange[2]){
-                    column(2, sliderInput(paste0('inp', column),
-                                       varNames[column],
-                                       min = min,
-                                       max = max,
-                                       value = c(min, max))
-                    )
-                  }
-                  else {
-                    if(currentVal[1] < min){
-                      currentVal[1] <- min
-                    }
-                    if(currentVal[2] > max){
-                      currentVal[2] <- max
-                    }
-                    column(2, sliderInput(paste0('inp', column),
-                                       varNames[column],
-                                       min = min,
-                                       max = max,
-                                       value = currentVal)
-                    )
-                  }
-                }
-                
-                else{
-                  column(2, sliderInput(paste0('inp', column),
-                                     varNames[column],
-                                     min = min,
-                                     max = max,
-                                     value = c(min, max))
-                  )
-                }
-              }
-            }
-          }
+  fullFilterUI <- reactive({
+    vars <- varsList()
+    data <- raw_plus()
+    
+    isolate({
+      fluidRow(
+        lapply(vars, function(column) {
+          if(varClass[column] == "factor")
+            generateEnumUI(column)
+          else if(varClass[column] == "integer")
+            generateIntegerSliderUI(column)
+          else
+            generateNumericSliderUI(column)
         })
-      })
-    )
+      )
+    })
   })
+  
+  generateEnumUI <- function(current) {
+    items <- names(table(raw_plus()[varNames[current]]))
+    
+    selectVal <- input[[paste0('inp', current)]]
+    if(is.null(selectVal) | !input$stickyFilters)
+      selectVal <- items
+    
+    column(2, selectInput(paste0('inp', current),
+                          varNames[current],
+                          multiple = TRUE,
+                          selectize = FALSE,
+                          choices = items,
+                          selected = selectVal)
+    )
+    
+    
+  }
+  
+  generateNumericSliderUI <- function(current) {
+    
+    max <- as.numeric(unname(rawAbsMax()[varNames[current]]))
+    min <- as.numeric(unname(rawAbsMin()[varNames[current]]))
+    step <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
+    
+    if (min != max) {
+    
+      sliderVal <- input[[paste0('inp', current)]]
+      if(is.null(sliderVal) | !input$stickyFilters)
+        sliderVal <- c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4))
+      
+      column(2, sliderInput(paste0('inp', current),
+                            varNames[current],
+                            step = signif(step, digits = 4),
+                            min = signif(min-step*10, digits = 4),
+                            max = signif(max+step*10, digits = 4),
+                            value = sliderVal)
+      )
+    }
+  }
+  
+  generateIntegerSliderUI <- function(current) {
+    
+    max <- as.numeric(unname(rawAbsMax()[varNames[current]]))
+    min <- as.numeric(unname(rawAbsMin()[varNames[current]]))
+    
+    if(min != max) {
+      
+      sliderVal <- input[[paste0('inp', current)]]
+      if(is.null(sliderVal) | !input$stickyFilters)
+        sliderVal <- c(min, max)
+      
+      column(2, sliderInput(paste0('inp', current),
+                            varNames[current],
+                            min = min,
+                            max = max,
+                            value = sliderVal)
+      )
+    }
+    
+  }
+  
+  # output$enums <- renderUI({
+  #   print("In render factor enums")
+  #   fluidRow(
+  #     lapply(1:length(varNames), function(column) {
+  #       isolate(currentVal <- input[[paste0('inp', column)]])
+  #       items <- names(table(raw_plus()[varNames[column]]))
+  #       if (varClass[column] == "factor" & length(items) > 1) {
+  #         isolate({
+  #           if(!is.null(currentVal) & length(currentVal) != length(items) & input$stickyFilters){
+  #             column(2, selectInput(paste0('inp', column),
+  #                                   varNames[column],
+  #                                   multiple = TRUE,
+  #                                   selectize = FALSE,
+  #                                   choices = items,
+  #                                   selected = currentVal)
+  #             )
+  #           }
+  #           else{
+  #             column(2, selectInput(paste0('inp', column),
+  #                                varNames[column],
+  #                                multiple = TRUE,
+  #                                selectize = FALSE,
+  #                                choices = items,
+  #                                selected = items)
+  #             )
+  #           }
+  #         })
+  #       }
+  #     })
+  #   )
+  # })
+  # 
+  # output$sliders <- renderUI({
+  #   print("In render sliders")
+  #   fluidRow(
+  #     lapply(1:length(varNames), function(column) {
+  #       isolate(currentVal <- input[[paste0('inp', column)]])
+  #       
+  #       max <- as.numeric(unname(rawAbsMax()[varNames[column]]))
+  #       min <- as.numeric(unname(rawAbsMin()[varNames[column]]))
+  #       
+  #       isolate({
+  #       
+  #         if(varClass[column] == "numeric") {
+  #           
+  #           diff <- (max-min)
+  #           # print(paste(column, "min", min, "max", max, "diff", diff))
+  #           if (diff != 0) {
+  #             #print(paste(column, varNames[column], as.numeric(unname(rawAbsMax()[varNames[column]]))))
+  #             step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
+  #             # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
+  #             
+  #             if(!is.null(currentVal) & input$stickyFilters){
+  # 
+  #                 sliderChange <- currentVal %in%  c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4))
+  #                 min = signif(min-step*10, digits = 4)
+  #                 max = signif(max+step*10, digits = 4)
+  #                 if(sliderChange[1] & sliderChange[2]){
+  #                   column(2, sliderInput(paste0('inp', column),
+  #                                      varNames[column],
+  #                                      step = signif(step, digits = 4),
+  #                                      min = min,
+  #                                      max = max,
+  #                                      value = currentVal)
+  #                   )
+  #                 }
+  #                 else {
+  #                   if(currentVal[1] < min){
+  #                     currentVal[1] <- min
+  #                   }
+  #                   if(currentVal[2] > max){
+  #                     currentVal[2] <- max
+  #                   }
+  #                   column(2, sliderInput(paste0('inp', column),
+  #                                 varNames[column],
+  #                                 step = signif(step, digits = 4),
+  #                                 min = min,
+  #                                 max = max,
+  #                                 value = currentVal)
+  #                   )
+  #                 }
+  #               }
+  #               else{
+  #                 column(2, sliderInput(paste0('inp', column),
+  #                                    varNames[column],
+  #                                    step = signif(step, digits = 4),
+  #                                    min = signif(min-step*10, digits = 4),
+  #                                    max = signif(max+step*10, digits = 4),
+  #                                    value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
+  #                 )
+  #               }
+  #             
+  #           }
+  #         } 
+  #         else {
+  #           if (varClass[column] == "integer") {
+  #             if (min != max) {
+  #               if(!is.null(currentVal) & input$stickyFilters){
+  #                 sliderChange <- currentVal %in%  c(min, max)
+  #                 if(sliderChange[1] & sliderChange[2]){
+  #                   column(2, sliderInput(paste0('inp', column),
+  #                                      varNames[column],
+  #                                      min = min,
+  #                                      max = max,
+  #                                      value = c(min, max))
+  #                   )
+  #                 }
+  #                 else {
+  #                   if(currentVal[1] < min){
+  #                     currentVal[1] <- min
+  #                   }
+  #                   if(currentVal[2] > max){
+  #                     currentVal[2] <- max
+  #                   }
+  #                   column(2, sliderInput(paste0('inp', column),
+  #                                      varNames[column],
+  #                                      min = min,
+  #                                      max = max,
+  #                                      value = currentVal)
+  #                   )
+  #                 }
+  #               }
+  #               
+  #               else{
+  #                 column(2, sliderInput(paste0('inp', column),
+  #                                    varNames[column],
+  #                                    min = min,
+  #                                    max = max,
+  #                                    value = c(min, max))
+  #                 )
+  #               }
+  #             }
+  #           }
+  #         }
+  #       })
+  #     })
+  #   )
+  # })
   
   output$constants <- renderUI({
     print("In render constants")
@@ -464,6 +550,9 @@ shinyServer(function(input, output, session) {
     )
   })
   
+  observeEvent(input$inp4, {
+    print("Input 4 has changed")
+  })
   
   
   resetDefaultSliders <- observeEvent(input$resetSliders, {

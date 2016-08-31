@@ -24,7 +24,7 @@ shinyUI(fluidPage(
               br()
             ), hr(),
               h4("Data Coloring"),
-              selectInput("colType", "Type:", choices = c("None", "Max/Min", "Discrete", "Highlighted"), selected = "None"),
+              selectInput("colType", "Type:", choices = c("None", "Max/Min", "Discrete", "Highlighted", "Ranked"), selected = "None"),
               conditionalPanel(
                 condition = "input.colType == 'Max/Min'",
                 selectInput("colVarNum", "Colored Variable:", c()),
@@ -44,7 +44,7 @@ shinyUI(fluidPage(
                             actionButton("updateStats", "Update"),
                             br()),  hr(),
             h4("Download"),
-            downloadButton('exportData', 'Dataset'),
+            downloadButton('exportData', 'Dataset'), 
             paste("          "),
             downloadButton('exportPlot', 'Plot'), hr(),
             actionButton("resetOptions", "Reset to Default Options")
@@ -109,7 +109,11 @@ shinyUI(fluidPage(
                  br(), br(), br()
                ),
                uiOutput("rankings"),
-               dataTableOutput("rankTable")
+               conditionalPanel(condition = "input.rankTable_rows_selected != NULL",
+                 downloadButton("exportPoints", "Export Selected Points"), 
+                 actionButton("colorRanked", "Color by Selected Rows")
+               ), br(),
+               DT::dataTableOutput("rankTable")
              )
     ),
     tabPanel("Ranges",
@@ -188,7 +192,11 @@ shinyUI(fluidPage(
             fluidRow(
               column(4, tags$div(title = "Color of highlighted data points.",
                                  colourInput("highlightColor", "Highlighted", "#377EB8")))
-            ), hr(),
+            ),
+            fluidRow(
+              column(4, tags$div(title = "Color of ranked data points.",
+                                 colourInput("rankColor", "Ranked", "#D13ABA")))
+            ),hr(),
 
 
             tags$div(title = "Return to default settings.",
@@ -208,8 +216,8 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.8"),
-            p(strong("Date:"), "8/24/2016"),
+            p(strong("Version:"), "v1.2.9"),
+            p(strong("Date:"), "8/31/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )

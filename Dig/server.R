@@ -1,5 +1,6 @@
 library(shiny)
 library(plotly)
+library(DT)
 #library(ggplot2)
 #options(shiny.trace=TRUE)
 #options(shiny.fullstacktrace = TRUE)
@@ -596,6 +597,11 @@ shinyServer(function(input, output, session) {
              data$color[xRange & yRange] <- input$highlightColor #light blue
            }
          }
+         else {
+           if (input$colType == "Ranked"){
+             data$color[as.numeric(input$rankTable_rows_selected)] <- input$rankColor
+           }
+         }
        }
      }
     print("Data Colored")
@@ -641,22 +647,24 @@ shinyServer(function(input, output, session) {
   
   pairsTrendline <- function(...){
     print("In pairs trendline")
+    
     if(input$upperPanel) {
       if(input$trendLines) {
-        pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = panel.smooth, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+        p <- pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = panel.smooth, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
       else {
-        pairs(pairs_data()[pairs_vars()], col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+        p <- pairs(pairs_data()[pairs_vars()], col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
     }
     else {
       if(input$trendLines) {
-        pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = NULL, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+        p <- pairs(pairs_data()[pairs_vars()], lower.panel = panel.smooth, upper.panel = NULL, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
       else {
-        pairs(pairs_data()[pairs_vars()], upper.panel = NULL, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
+        p <- pairs(pairs_data()[pairs_vars()], upper.panel = NULL, col = pairs_data()$color, pch = as.numeric(input$pointStyle), cex = as.numeric(input$pointSize))
       }
     }
+    
   }
   
   output$pairsDisplay <- renderUI({
@@ -817,7 +825,13 @@ shinyServer(function(input, output, session) {
 
   infoTable <- function(...){
     print("In info table")
-    tb <- table(factor(colorData()$color, c(input$midColor, input$minColor, input$highlightColor, input$maxColor, input$normColor)))
+    tb <- table(factor(colorData()$color, 
+                       c(input$midColor, 
+                         input$minColor, 
+                         input$highlightColor, 
+                         input$rankColor,
+                         input$maxColor, 
+                         input$normColor)))
     if (input$colType == 'Max/Min') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
@@ -850,8 +864,13 @@ shinyServer(function(input, output, session) {
     else if(input$colType == 'Highlighted') {
       paste0("Total Points: ", nrow(raw),
              "\nCurrent Points: ", nrow(filterData()),
-             "\nColored Points: ", sum(tb[[input$highlightColor]], tb[[input$normColor]]),
              "\nHighlighted Points: ", tb[[input$highlightColor]]
+      )
+    }
+    else if(input$colType == 'Ranked') {
+      paste0("Total Points: ", nrow(raw),
+             "\nCurrent Points: ", nrow(filterData()),
+             "\nRanked Points: ", tb[[input$rankColor]]
       )
     }
     else{
@@ -967,28 +986,6 @@ shinyServer(function(input, output, session) {
     p %>% layout(title = "Distribution of Weighted Metrics")
   })
   
-  
-  # output$rankPieChart <- renderPlot({
-  #   weights <- unlist(lapply(metricsList(), function(x) input[[paste0('rnk', x)]]))
-  #   totalWeight <- 0
-  #   for(i in 1:length(weights)){
-  #     totalWeight <- totalWeight + weights[i]
-  #   }
-  #   req(totalWeight)
-  #   isolate({
-  #     if(totalWeight > 0){
-  #       slices <- unlist(lapply(weights, function(x) x/totalWeight))
-  #       lbls <- unlist(lapply(metricsList(), function(x) varNames[x]))
-  #       ind_zeros <- which(slices %in% 0)
-  #       if(length(ind_zeros) > 0){
-  #         slices <- slices[-ind_zeros]
-  #         lbls <- lbls[-ind_zeros]
-  #       }
-  #       pie(slices, labels = lbls, main = "Distribution of Weighted Metrics")
-  #     }
-  #   })
-  # })
-  
   generateMetricUI <- function(current) {
     
     sliderVal <- input[[paste0('rnk', current)]]
@@ -1000,13 +997,14 @@ shinyServer(function(input, output, session) {
       radioVal <- "Min"
     
     column(3, 
+      h4(varNames[current]),
       radioButtons(paste0('sel', current), 
-                   NULL,
+                   "Score By:",
                    choices = c("Min", "Max"),
                    selected = radioVal,
                    inline = TRUE),
       sliderInput(paste0('rnk', current),
-                  paste0("Weight: ", varNames[current]),
+                  "Weight:",
                   step = 0.01,
                   min = 0,
                   max = 1,
@@ -1028,13 +1026,15 @@ shinyServer(function(input, output, session) {
     fullMetricUI()
   })
   
+  scoreData <- NULL
+  
   rankData <- reactive({
     req(metricsList())
     print("In calculate ranked data")
     data <- filterData()[varNum]
     normData <- data.frame(t(t(data)/apply(data,2,max)))
     
-    scoreData <- sapply(row.names(normData) ,function(x) 0)
+    scoreData <<- sapply(row.names(normData) ,function(x) 0)
     
     for(i in 1:length(metricsList())) {
       column <- varNames[metricsList()[i]]
@@ -1049,18 +1049,28 @@ shinyServer(function(input, output, session) {
           normData[j,column] <- 1 -item + colMin
         }
       }
-      scoreData <- scoreData + unlist(unname(weight*normData[column]))
+      scoreData <<- scoreData + unlist(unname(weight*normData[column]))
     }
-    scoreData <- sort(scoreData, decreasing = TRUE)
+    scoreData <<- sort(scoreData, decreasing = TRUE)
     filterData()[names(scoreData),]
-   
   })
   
-  output$rankTable <- renderDataTable({
+  output$rankTable <- DT::renderDataTable({
     print("In render ranked data table")
     rankData()
   })
   
+  observeEvent(input$colorRanked, {
+    req(input$rankTable_rows_selected)
+    updateTabsetPanel(session, "inTabset", selected = "Pairs Plot")
+    updateSelectInput(session, "colType", selected = "Ranked")
+  })
+  
+  output$exportPoints <- downloadHandler(
+    filename = function() { paste('ranked_points-', Sys.Date(), '.csv', sep='') },
+    content = function(file) { 
+      write.csv(filterData()[input$rankTable_rows_selected, ], file) }
+  )
   
   # Ranges Table Tab --------------------------------------------------------------------------------
   slowRangeData <- eventReactive(input$updateRanges, {

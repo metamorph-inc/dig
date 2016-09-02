@@ -14,7 +14,7 @@ importData <- NULL
 
 shinyServer(function(input, output, session) {
 
-  importFlags <- reactiveValues(tier1 = FALSE, tier2 = FALSE, tier3 = FALSE)
+  importFlags <- reactiveValues(tier1 = FALSE, tier2 = FALSE, ranking = FALSE)
   
   session$onSessionEnded(function() {
     stopApp()
@@ -75,7 +75,8 @@ shinyServer(function(input, output, session) {
                          "upperPanel",
                          "autoInfo",
                          "autoData",
-                         "autoRange")
+                         "autoRange",
+                         "viewAllFilters")
       
       tier1Selects <- c("colVarNum",
                         "display",
@@ -85,13 +86,16 @@ shinyServer(function(input, output, session) {
                         "colVarFactor",
                         "numDevs",
                         "pointSize",
-                        "pointStyle")
+                        "pointStyle",
+                        "radio",
+                        "weightMetrics")
                      
       tier1Colors <- c("normColor", 
                        "minColor", 
                        "maxColor", 
                        "midColor", 
-                       "highlightColor")
+                       "highlightColor",
+                       "rankColor")
       
       for(i in 1:length(tier1CheckBox)){
         current <- tier1CheckBox[i]
@@ -307,20 +311,47 @@ shinyServer(function(input, output, session) {
     fullFilterUI()
   })
   
+  filterVars <- reactive({
+    req(input$display)
+    if(input$viewAllFilters)
+      match(varRange(), varNames)
+    else
+      varsList()
+  })
+  
   fullFilterUI <- reactive({
-    vars <- varsList()
+    vars <- filterVars()
     data <- raw_plus()
     
+    facVars <- NULL
+    intVars <- NULL
+    numVars <- NULL
+    
+    for(i in 1:length(vars)){
+      current <- vars[i]
+      if(varClass[current] == "factor")
+        facVars <- c(facVars, current)
+      else if(varClass[current] == "integer")
+        intVars <- c(intVars, current)
+      else if(varClass[current] == "numeric")
+        numVars <- c(numVars, current)
+    }
+    
     isolate({
-      fluidRow(
-        lapply(vars, function(column) {
-          if(varClass[column] == "factor")
-            generateEnumUI(column)
-          else if(varClass[column] == "integer")
+      wellPanel(
+        fluidRow(
+          lapply(facVars, function(column) {
+              generateEnumUI(column)
+          })
+        ),
+        fluidRow(
+          lapply(intVars, function(column) {
             generateIntegerSliderUI(column)
-          else
+          }),
+          lapply(numVars, function(column) {
             generateNumericSliderUI(column)
-        })
+          })
+        )
       )
     })
   })
@@ -550,12 +581,9 @@ shinyServer(function(input, output, session) {
     )
   })
   
-  observeEvent(input$inp4, {
-    print("Input 4 has changed")
-  })
   
   
-  resetDefaultSliders <- observeEvent(input$resetSliders, {
+  observeEvent(input$resetSliders, {
     print("In resetDefaultSliders()")
     for(column in 1:length(varNames)) {
       if(varClass[column] == "numeric") {
@@ -581,7 +609,7 @@ shinyServer(function(input, output, session) {
       }
     }
   })
-  
+    
   filterData <- reactive({
     print("In filterData()")
     data <- raw_plus()
@@ -765,8 +793,8 @@ shinyServer(function(input, output, session) {
     
     print("In render plot")
     
-    output$displayVars <- renderText("")
-    output$filterVars <- renderText("")
+    output$displayError <- renderText("")
+    output$filterError <- renderText("")
     
     if (length(input$display) >= 2 & nrow(filterData()) > 0) {
       print("Rendering Plot.")
@@ -775,12 +803,12 @@ shinyServer(function(input, output, session) {
     }
     else {
       if (nrow(filterData()) == 0) {
-        output$filterVars <- 
+        output$filterError <- 
           renderText(
             "No data points fit the current filtering scheme")
       }
       if (length(input$display) < 2) {
-        output$displayVars <- 
+        output$displayError <- 
           renderText(
             "Please select two or more display variables.")
       }
@@ -863,10 +891,6 @@ shinyServer(function(input, output, session) {
         ylimits <- xlimits        
       }
     }
-    # print("Printing vars")
-    # print(x_var)
-    # print(y_var)
-    # print("Done printing vars")
   })
   
   
@@ -882,7 +906,6 @@ shinyServer(function(input, output, session) {
   })
   
   slowVarsList <- eventReactive(input$renderPlot, {
-    # print(paste("input$renderPlot:", input$renderPlot))
     print("Getting Variable List.")
     idx = 0
     for(choice in 1:length(input$display)) {
@@ -899,18 +922,23 @@ shinyServer(function(input, output, session) {
   
   output$stats <- renderText({
     print("In render stats")
-    if(input$autoInfo == TRUE){
-      table <- infoTable()
+    if(nrow(filterData()) > 0){
+      if(input$autoInfo == TRUE){
+        table <- infoTable()
+      }
+      else {
+        table <- slowInfoTable()
+      }
     }
-    else {
-      table <- slowInfoTable()
-    }
+    else
+      table <- "No data points fit the filtering scheme"
     if(importFlags$tier1){
       importFlags$tier1 <- FALSE
       importFlags$tier2 <- TRUE
+      importFlags$ranking <- TRUE
     }
     table
-  })
+})
 
   infoTable <- function(...){
     print("In info table")
@@ -1052,7 +1080,13 @@ shinyServer(function(input, output, session) {
     idx
   })
   
+  
+  observeEvent(input$clearMetrics, {
+    updateSelectInput(session, "weightMetrics", choices = varNum, selected = NULL) 
+  })
+  
   output$rankPieChart <- renderPlotly({
+    
     weights <- unlist(lapply(metricsList(), function(x) input[[paste0('rnk', x)]]))
     totalWeight <- 0
     for(i in 1:length(weights)){
@@ -1060,31 +1094,36 @@ shinyServer(function(input, output, session) {
     }
     p <- plot_ly(values = 0, type = "pie")
     req(totalWeight)
-    isolate({
-      if(totalWeight > 0){
-        slices <- unlist(lapply(weights, function(x) x/totalWeight))
-        lbls <- unlist(lapply(metricsList(), function(x) varNames[x]))
-        ind_zeros <- which(slices %in% 0)
-        if(length(ind_zeros) > 0){
-          slices <- slices[-ind_zeros]
-          lbls <- lbls[-ind_zeros]
-        }
-        p <- plot_ly(pull = 0.1, labels = lbls, values = slices, type = "pie") 
+    if(totalWeight > 0){
+      print("In Render Plotly Pie Chart")
+      slices <- unlist(lapply(weights, function(x) x/totalWeight))
+      lbls <- unlist(lapply(metricsList(), function(x) varNames[x]))
+      ind_zeros <- which(slices %in% 0)
+      if(length(ind_zeros) > 0){
+        slices <- slices[-ind_zeros]
+        lbls <- lbls[-ind_zeros]
       }
-    })
+      p <- plot_ly(pull = 0.1, labels = lbls, values = slices, type = "pie") 
+    }
     p %>% layout(title = "Distribution of Weighted Metrics")
   })
   
-  generateMetricUI <- function(current) {
+  generateMetricUI <- function(current, slider, radio) {
     
-    sliderVal <- input[[paste0('rnk', current)]]
-    if(is.null(sliderVal))
-      sliderVal <- 1
-    
-    radioVal <- input[[paste0('sel', current)]]
-    if(is.null(radioVal))
-      radioVal <- "Min"
-    
+    if(missing(slider) & missing(radio)){
+      sliderVal <- input[[paste0('rnk', current)]]
+      if(is.null(sliderVal))
+        sliderVal <- 1
+      
+      radioVal <- input[[paste0('sel', current)]]
+      if(is.null(radioVal))
+        radioVal <- "Min"
+    }
+    else{
+      sliderVal <- slider
+      radioVal <- radio
+    }
+      
     column(3, 
       h4(varNames[current]),
       radioButtons(paste0('sel', current), 
@@ -1101,12 +1140,23 @@ shinyServer(function(input, output, session) {
     )
   }
   
-  fullMetricUI <- eventReactive(metricsList(), {
-    fluidRow(
-      lapply(metricsList(), function(column) {
-        generateMetricUI(column)
-      })
-    )
+  fullMetricUI <- reactive({
+    if(!importFlags$ranking){
+      fluidRow(
+        lapply(metricsList(), function(column) {
+          generateMetricUI(column)
+        })
+      )
+    }
+    else{
+      fluidRow(
+        lapply(metricsList(), function(column) {
+          importedSlider <- importData[[paste0('rnk', column)]]
+          importedRadio <- importData[[paste0('sel', column)]]
+          generateMetricUI(column, importedSlider, importedRadio)
+        })
+      )
+    }
   })
 
   output$rankings <- renderUI({
@@ -1140,8 +1190,11 @@ shinyServer(function(input, output, session) {
       }
       scoreData <<- scoreData + unlist(unname(weight*normData[column]))
     }
+    
+    importFlags$ranking <- FALSE
     scoreData <<- sort(scoreData, decreasing = TRUE)
     filterData()[names(scoreData),]
+    
   })
   
   output$rankTable <- DT::renderDataTable({

@@ -54,8 +54,6 @@ shinyUI(fluidPage(
             uiOutput("displayError"),   
             uiOutput("filterError"),
             uiOutput("pairsDisplay")
-          
-          #h4(textOutput("filterVars"), align = "center")
         )
       )
     ),
@@ -104,13 +102,16 @@ shinyUI(fluidPage(
                  column(4, selectInput("weightMetrics",
                              "Select Weighted Metrics:",
                              c(),
-                             multiple = TRUE)),
+                             multiple = TRUE),
+                        actionButton("clearMetrics", "Clear Metrics")),
                  column(8, plotlyOutput("rankPieChart")),
                  br(), br(), br()
                ),
-               uiOutput("rankings"),
+               uiOutput("rankings"), 
                downloadButton("exportPoints", "Export Selected Points"), 
-               actionButton("colorRanked", "Color by Selected Rows"), br(),
+               actionButton("colorRanked", "Color by Selected Rows"), 
+               br(), hr(),
+               h4(strong("Ranked Data"), align = "center"),
                DT::dataTableOutput("rankTable")
              )
     ),
@@ -214,8 +215,8 @@ shinyUI(fluidPage(
             hr(),
             
             h4("About"),
-            p(strong("Version:"), "v1.2.9"),
-            p(strong("Date:"), "8/31/2016"),
+            p(strong("Version:"), "v1.2.10"),
+            p(strong("Date:"), "9/2/2016"),
             p(strong("Developer:"), "Metamorph Software"),
             p(strong("Support:"), "tthomas@metamorphsoftware.com")
           )
@@ -225,15 +226,15 @@ shinyUI(fluidPage(
   id = "inTabset"),
   h3("Filter Data:"),
   fluidRow(
-    column(2,
-      tags$div(title = "Return sliders to default state.",
-               actionButton("resetSliders", "Reset Filters"))
+    column(3,
+      tags$div(title = "Activate to show filters for all dataset variables.",
+               checkboxInput("viewAllFilters", "View All Filters", value = FALSE)),
+      tags$div(title = "Return visible sliders to default state.",
+               actionButton("resetSliders", "Reset Visible Filters"))
     ),
-    br(), br()
+    br(), br(), br(), br(), br()
   ),
   uiOutput("filters"),
-  # uiOutput("enums"),
-  # uiOutput("sliders"),
   h3("Constants:"),
   uiOutput("constants")
   

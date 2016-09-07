@@ -716,7 +716,8 @@ shinyServer(function(input, output, session) {
          }
          else {
            if (input$colType == "Ranked"){
-             data$color[as.numeric(input$rankTable_rows_selected)] <- input$rankColor
+             selected <- isolate(input$rankTable_rows_selected)
+             data[input$rankTable_rows_selected, "color"] <- input$rankColor
            }
          }
        }
@@ -1108,35 +1109,61 @@ shinyServer(function(input, output, session) {
     p %>% layout(title = "Distribution of Weighted Metrics")
   })
   
-  generateMetricUI <- function(current, slider, radio) {
+  generateMetricUI <- function(current, slider, radioSel, radioType, textUtil) {
     
-    if(missing(slider) & missing(radio)){
+    if(missing(slider) & missing(radioSel) & missing(radioType) & missing(textUtil)){
       sliderVal <- input[[paste0('rnk', current)]]
       if(is.null(sliderVal))
         sliderVal <- 1
       
-      radioVal <- input[[paste0('sel', current)]]
-      if(is.null(radioVal))
-        radioVal <- "Min"
+      selVal <- input[[paste0('sel', current)]]
+      if(is.null(selVal))
+        selVal <- "Min"
+      
+      typeVal <- input[[paste0('type', current)]]
+      if(is.null(typeVal))
+        typeVal <- "Weight"
+      
+      utilVal <- input[[paste0('util', current)]]
+      if(is.null(utilVal))
+        utilVal <- NULL
     }
     else{
       sliderVal <- slider
-      radioVal <- radio
+      selVal <- radioSel
+      typeVal <- radioType
+      utilVal <- textUtil
     }
+    
+    weightCondition <- toString(paste0("input.type", current, " == ", "'Weight'"))
+    functionCondition <- toString(paste0("input.type", current, " == ", "'Function'"))
       
     column(3, 
       h4(varNames[current]),
-      radioButtons(paste0('sel', current), 
+      radioButtons(paste0('type', current),
                    "Score By:",
-                   choices = c("Min", "Max"),
-                   selected = radioVal,
-                   inline = TRUE),
-      sliderInput(paste0('rnk', current),
-                  "Weight:",
-                  step = 0.01,
-                  min = 0,
-                  max = 1,
-                  value = sliderVal)
+                   choices = c("Weight", "Function"),
+                   selected = typeVal),
+      conditionalPanel(condition = weightCondition, 
+        radioButtons(paste0('sel', current), 
+                     "Weight:",
+                     choices = c("Min", "Max"),
+                     selected = selVal,
+                     inline = TRUE),
+        sliderInput(paste0('rnk', current),
+                    NULL,
+                    step = 0.01,
+                    min = 0,
+                    max = 1,
+                    value = sliderVal)
+      ),
+      conditionalPanel(condition = functionCondition,
+        textInput(paste0('util', current),
+                  "Function:",
+                  utilVal,
+                  placeholder = "e.g. > 10 & < 20; >=20"
+        )
+      )
     )
   }
   
@@ -1152,8 +1179,14 @@ shinyServer(function(input, output, session) {
       fluidRow(
         lapply(metricsList(), function(column) {
           importedSlider <- importData[[paste0('rnk', column)]]
-          importedRadio <- importData[[paste0('sel', column)]]
-          generateMetricUI(column, importedSlider, importedRadio)
+          importedRadioSel <- importData[[paste0('sel', column)]]
+          importedRadioType <- importData[[paste0('type', column)]]
+          importedUtil <- importData[[paste0('util', column)]]
+          generateMetricUI(column, 
+                           importedSlider, 
+                           importedRadioSel, 
+                           importedRadioType, 
+                           importedUtil)
         })
       )
     }
@@ -1165,36 +1198,40 @@ shinyServer(function(input, output, session) {
     fullMetricUI()
   })
   
-  scoreData <- NULL
+  getUtilityFunction <- function(current){
+    funcInput <- input[[paste0("util", current)]]
+    unlist(strsplit(gsub(" ", "", funcInput, fixed = TRUE), ";"))
+  }
   
   rankData <- reactive({
     req(metricsList())
     print("In calculate ranked data")
     data <- filterData()[varNum]
     normData <- data.frame(t(t(data)/apply(data,2,max)))
-    
-    scoreData <<- sapply(row.names(normData) ,function(x) 0)
+    scoreData <- sapply(row.names(normData) ,function(x) 0)
     
     for(i in 1:length(metricsList())) {
       column <- varNames[metricsList()[i]]
-      rnkName <- paste0("rnk", toString(metricsList()[i]))
-      weight <- input[[rnkName]]
-      req(weight)
-      radioSelect <- paste0("sel", toString(metricsList()[i]))
-      if(input[[radioSelect]] == "Min"){
-        colMin <- min(normData[column])
-        for(j in 1:length(unlist(normData[column]))) {
-          item <- normData[j,column]
-          normData[j,column] <- 1 -item + colMin
+      scoreType <- input[[paste0('type', toString(metricsList()[i]))]]
+      req(scoreType)
+      if(scoreType == "Weight"){
+        rnkName <- paste0("rnk", toString(metricsList()[i]))
+        weight <- input[[rnkName]]
+        req(weight)
+        radioSelect <- paste0("sel", toString(metricsList()[i]))
+        if(input[[radioSelect]] == "Min"){
+          colMin <- min(normData[column])
+          for(j in 1:length(unlist(normData[column]))) {
+            item <- normData[j,column]
+            normData[j,column] <- 1 -item + colMin
+          }
         }
+        scoreData <- scoreData + unlist(unname(weight*normData[column]))
       }
-      scoreData <<- scoreData + unlist(unname(weight*normData[column]))
     }
-    
     importFlags$ranking <- FALSE
-    scoreData <<- sort(scoreData, decreasing = TRUE)
+    scoreData <- sort(scoreData, decreasing = TRUE)
     filterData()[names(scoreData),]
-    
   })
   
   output$rankTable <- DT::renderDataTable({
